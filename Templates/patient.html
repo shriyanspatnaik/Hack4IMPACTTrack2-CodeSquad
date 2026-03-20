@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Portal — Klinique Buddy</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        body.elderly-mode {
+            font-size: 21px !important;
+        }
+
+        body.elderly-mode .card {
+            padding: 32px !important;
+            border-radius: 18px !important;
+        }
+
+        body.elderly-mode .med-name {
+            font-size: 1.35rem !important;
+        }
+
+        body.elderly-mode .med-detail {
+            font-size: 1.05rem !important;
+        }
+
+        body.elderly-mode p,
+        body.elderly-mode label {
+            font-size: 1.05rem !important;
+            line-height: 1.9 !important;
+        }
+
+        body.elderly-mode .badge {
+            font-size: 1.05rem !important;
+            padding: 10px 20px !important;
+        }
+
+        body.elderly-mode .elderly-big-btn {
+            padding: 20px 28px !important;
+            font-size: 1.2rem !important;
+            border-radius: 14px !important;
+            min-height: 72px !important;
+        }
+
+        body.elderly-mode .normal-login {
+            display: none !important;
+        }
+
+        .elderly-simple-menu {
+            display: none;
+        }
+
+        body.elderly-mode .elderly-simple-menu {
+            display: flex !important;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light') document.body.classList.add('light');
+        if (localStorage.getItem('elderlyMode') === 'true') document.body.classList.add('elderly-mode');
+    </script>
+
+    <nav class="navbar">
+        <div class="logo">Klinique<span>Buddy</span></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">☀️ Light</button>
+            <button class="theme-toggle" id="lang-btn" onclick="toggleLang()">🌐 हिंदी</button>
+            <button class="btn btn-outline elderly-big-btn" onclick="toggleElderly()" id="elderly-btn">👴 Easy
+                Mode</button>
+            <a href="/" class="btn btn-outline">← <span class="t" data-en="Back" data-hi="वापस">Back</span></a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width:700px;">
+
+        {% if not patient and not error %}
+
+        <!-- Portal Header -->
+        <div class="portal-header" style="margin-top:12px;margin-bottom:28px;">
+            <div class="portal-header-content">
+                <h1 style="font-family:'Syne',sans-serif;font-size:1.7rem;margin-bottom:6px;" class="t"
+                    data-en="Patient Portal" data-hi="मरीज़ पोर्टल">Patient Portal</h1>
+                <p style="color:var(--text-muted);font-size:0.9rem;" class="t"
+                    data-en="View your prescription and medication schedule" data-hi="अपना नुस्खा और दवाई का समय देखें">
+                    View your prescription and medication schedule</p>
+            </div>
+        </div>
+
+        <!-- Normal Login -->
+        <div class="card normal-login">
+            <form method="POST" action="/patient">
+                <div class="form-group">
+                    <label class="t" data-en="Your Full Name" data-hi="आपका पूरा नाम">Your Full Name</label>
+                    <input type="text" name="name" placeholder="Enter your name" required
+                        style="font-size:1rem;padding:12px 14px;">
+                </div>
+                <div class="form-group">
+                    <label class="t" data-en="Phone Number" data-hi="फ़ोन नंबर">Phone Number</label>
+                    <input type="tel" name="phone" placeholder="Enter your phone number" required
+                        style="font-size:1rem;padding:12px 14px;">
+                </div>
+                <input type="hidden" name="lang" id="hidden-lang" value="en">
+                <button type="submit" class="btn btn-primary elderly-big-btn"
+                    style="width:100%;padding:13px;font-size:1rem;">
+                    🔍 <span class="t" data-en="Find My Record" data-hi="मेरा रिकॉर्ड खोजें">Find My Record</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Elderly Simple Menu -->
+        <div class="elderly-simple-menu" style="display:none;flex-direction:column;gap:18px;margin-top:12px;">
+            <div class="card" style="text-align:center;padding:28px;">
+                <p style="font-size:1.6rem;font-weight:700;font-family:'Syne',sans-serif;margin-bottom:6px;">👋 <span
+                        class="t" data-en="Hello! How can we help?" data-hi="नमस्ते! हम कैसे मदद करें?">Hello! How can
+                        we help?</span></p>
+                <p style="color:var(--text-muted);font-size:0.9rem;" class="t" data-en="Choose an option below"
+                    data-hi="नीचे से चुनें">Choose an option below</p>
+            </div>
+            <button class="btn elderly-big-btn"
+                style="width:100%;background:#ef4444;color:#fff;border:none;justify-content:center;"
+                onclick="showElderlyForm()">
+                🤒 <span class="t" data-en="I am not feeling well" data-hi="मुझे तकलीफ है">I am not feeling well</span>
+            </button>
+            <button class="btn elderly-big-btn"
+                style="width:100%;background:var(--accent);color:#fff;border:none;justify-content:center;"
+                onclick="showElderlyForm()">
+                💊 <span class="t" data-en="See my medicines" data-hi="मेरी दवाइयाँ देखें">See my medicines</span>
+            </button>
+            <button class="btn btn-outline elderly-big-btn" style="width:100%;justify-content:center;"
+                onclick="window.location.href='/'">
+                👨‍⚕️ <span class="t" data-en="Go back to home" data-hi="होम पर जाएं">Go back to home</span>
+            </button>
+            <div id="elderly-login-form" style="display:none;">
+                <div class="card">
+                    <div class="form-group">
+                        <label style="font-size:1.1rem;" class="t" data-en="Your Full Name" data-hi="आपका पूरा नाम">Your
+                            Full Name</label>
+                        <input type="text" id="e-name" placeholder="Enter your name"
+                            style="font-size:1.2rem;padding:16px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:1.1rem;" class="t" data-en="Phone Number" data-hi="फ़ोन नंबर">Phone
+                            Number</label>
+                        <input type="tel" id="e-phone" placeholder="Enter phone number"
+                            style="font-size:1.2rem;padding:16px;">
+                    </div>
+                    <button class="btn btn-primary elderly-big-btn" style="width:100%;justify-content:center;"
+                        onclick="submitElderlyForm()">
+                        ✅ <span class="t" data-en="Find My Record" data-hi="मेरा रिकॉर्ड खोजें">Find My Record</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% elif error %}
+        <div class="card" style="margin-top:40px;text-align:center;padding:48px;">
+            <div style="font-size:3rem;margin-bottom:14px;">😕</div>
+            <p style="font-weight:700;font-size:1.15rem;margin-bottom:8px;" class="t" data-en="Record Not Found"
+                data-hi="रिकॉर्ड नहीं मिला">Record Not Found</p>
+            <p style="color:var(--text-muted);margin:12px 0;">{{ error }}</p>
+            <a href="/patient" class="btn btn-primary elderly-big-btn" style="display:inline-flex;margin-top:8px;">
+                <span class="t" data-en="Try Again" data-hi="फिर कोशिश करें">Try Again</span>
+            </a>
+        </div>
+
+        {% else %}
+        <!-- Patient Record -->
+        <div class="portal-header" style="margin-top:12px;margin-bottom:20px;">
+            <div class="portal-header-content">
+                <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;margin-bottom:4px;">
+                    <span class="t" data-en="Hello" data-hi="नमस्ते">Hello</span>, {{ patient.name }}! 👋
+                </h2>
+                <p style="color:var(--text-muted);font-size:0.88rem;" class="t"
+                    data-en="Here is your medical summary and prescription"
+                    data-hi="यहाँ आपकी मेडिकल जानकारी और दवाइयाँ हैं">Here is your medical summary and prescription</p>
+            </div>
+        </div>
+
+        <!-- Severity Card -->
+        <div class="card" style="margin-bottom:14px;">
+            <p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:10px;"
+                class="t" data-en="Your Severity Level" data-hi="आपकी तकलीफ का स्तर">Your Severity Level</p>
+            <span class="badge badge-{{ patient.severity | lower }}" style="font-size:0.95rem;padding:7px 16px;">
+                {% if patient.severity == 'Critical' %}🔴 Critical
+                {% elif patient.severity == 'Orange' %}🟠 Critical if Untreated
+                {% elif patient.severity == 'Moderate' %}🟡 Moderate
+                {% else %}🟢 Mild{% endif %}
+            </span>
+            {% if patient.progression_warning %}
+            <div class="progress-warning" style="margin-top:12px;">⚠️ {{ patient.progression_warning }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Prescription -->
+        {% if patient.medicines %}
+        <div class="card" style="margin-bottom:14px;">
+            <p style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-bottom:16px;">
+                💊 <span class="t" data-en="Your Prescription" data-hi="आपकी दवाइयाँ">Your Prescription</span>
+            </p>
+            {% for med in patient.medicines %}
+            <div class="medicine-item" style="flex-direction:column;align-items:flex-start;gap:6px;">
+                <div style="display:flex;align-items:center;gap:12px;width:100%;">
+                    <span style="font-size:1.5rem;">💊</span>
+                    <div>
+                        <p style="font-weight:700;" class="med-name">{{ med.name }}</p>
+                        <p class="med-detail" style="font-size:0.85rem;color:var(--text-muted);">{{ med.dose }} · {{
+                            med.timing }} · {{ med.food }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if patient.follow_up %}
+            <div
+                style="margin-top:14px;padding:12px 16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);font-size:0.9rem;">
+                📅 <strong class="t" data-en="Follow-up:" data-hi="अगली मुलाकात:">Follow-up:</strong> {{
+                patient.follow_up }}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="card" style="margin-bottom:14px;text-align:center;padding:36px;">
+            <p style="font-size:2rem;margin-bottom:12px;">⏳</p>
+            <p style="color:var(--text-muted);" class="t"
+                data-en="Prescription not yet issued. Please wait for the doctor."
+                data-hi="अभी नुस्खा नहीं दिया गया है। डॉक्टर का इंतज़ार करें।">Prescription not yet issued. Please wait
+                for the doctor.</p>
+        </div>
+        {% endif %}
+
+        <!-- Vitals -->
+        <div class="card">
+            <p style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:14px;font-size:1rem;">
+                📊 <span class="t" data-en="Your Vitals" data-hi="आपके स्वास्थ्य आँकड़े">Your Vitals</span>
+            </p>
+            <div class="grid-2">
+                <div
+                    style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                    <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
+                        class="t" data-en="Blood Pressure" data-hi="ब्लड प्रेशर">Blood Pressure</p>
+                    <p style="font-weight:700;font-size:1.1rem;">{{ patient.bp or 'N/A' }}</p>
+                </div>
+                <div
+                    style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                    <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
+                        class="t" data-en="Oxygen Level" data-hi="ऑक्सीजन स्तर">Oxygen Level</p>
+                    <p style="font-weight:700;font-size:1.1rem;">{{ patient.oxygen or 'N/A' }}%</p>
+                </div>
+                <div
+                    style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                    <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
+                        class="t" data-en="Blood Sugar" data-hi="ब्लड शुगर">Blood Sugar</p>
+                    <p style="font-weight:700;font-size:1.1rem;">{{ patient.sugar or 'N/A' }} mg/dL</p>
+                </div>
+                <div
+                    style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                    <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
+                        class="t" data-en="Age" data-hi="उम्र">Age</p>
+                    <p style="font-weight:700;font-size:1.1rem;">{{ patient.age }} <span class="t" data-en="years"
+                            data-hi="वर्ष">years</span></p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Theme
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            document.getElementById('theme-btn').textContent = isLight ? '🌙 Dark' : '☀️ Light';
+        }
+        document.getElementById('theme-btn').textContent = document.body.classList.contains('light') ? '🌙 Dark' : '☀️ Light';
+
+        // Language
+        let currentLang = localStorage.getItem('lang') || 'en';
+        applyLang(currentLang);
+        function toggleLang() {
+            currentLang = currentLang === 'en' ? 'hi' : 'en';
+            localStorage.setItem('lang', currentLang);
+            applyLang(currentLang);
+        }
+        function applyLang(lang) {
+            document.querySelectorAll('.t').forEach(el => {
+                const val = el.getAttribute('data-' + lang);
+                if (val) el.textContent = val;
+            });
+            document.getElementById('lang-btn').textContent = lang === 'en' ? '🌐 हिंदी' : '🌐 English';
+            const h = document.getElementById('hidden-lang');
+            if (h) h.value = lang;
+        }
+
+        // Elderly
+        function toggleElderly() {
+            const on = !document.body.classList.contains('elderly-mode');
+            document.body.classList.toggle('elderly-mode', on);
+            localStorage.setItem('elderlyMode', on);
+            document.getElementById('elderly-btn').textContent = on ? '👓 Normal Mode' : '👴 Easy Mode';
+        }
+        document.getElementById('elderly-btn').textContent = document.body.classList.contains('elderly-mode') ? '👓 Normal Mode' : '👴 Easy Mode';
+
+        function showElderlyForm() {
+            document.getElementById('elderly-login-form').style.display = 'block';
+        }
+        function submitElderlyForm() {
+            const name = document.getElementById('e-name').value.trim();
+            const phone = document.getElementById('e-phone').value.trim();
+            if (!name || !phone) { alert('Please enter your name and phone number'); return; }
+            const form = document.createElement('form');
+            form.method = 'POST'; form.action = '/patient';
+            [['name', name], ['phone', phone], ['lang', currentLang]].forEach(([k, v]) => {
+                const i = document.createElement('input');
+                i.type = 'hidden'; i.name = k; i.value = v;
+                form.appendChild(i);
+            });
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+</body>
+
+</html>

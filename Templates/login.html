@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klinique Buddy</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <script>
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light') document.body.classList.add('light');
+    </script>
+    <div class="login-page">
+        <div class="login-wrapper">
+            <div class="login-header">
+                <span class="logo">Klinique<span>Buddy</span></span>
+                <p>AI-Powered Patient Triage &amp; Treatment Adherence</p>
+                <p style="margin-top:6px;font-size:0.78rem;opacity:0.6;">HACK4IMPACT Track 2 — Smart Healthcare · KIIT
+                    Bhubaneswar</p>
+            </div>
+            <div class="login-cards-row">
+                <a href="/doctor" class="login-role-card doctor-card">
+                    <div class="role-icon-wrap doctor-icon">👨‍⚕️</div>
+                    <h3>Doctor</h3>
+                    <p>Access AI-prioritized patient queue and manage prescriptions</p>
+                    <ul class="role-features">
+                        <li>📊 AI Triage Dashboard</li>
+                        <li>💊 Prescribe Medicines</li>
+                        <li>📝 Private Notes</li>
+                        <li>🚨 Critical Alerts</li>
+                    </ul>
+                    <button class="enter-btn doctor-enter">Enter as Doctor →</button>
+                </a>
+                <a href="/patient" class="login-role-card patient-card">
+                    <div class="role-icon-wrap patient-icon">🧑‍🤝‍🧑</div>
+                    <h3>Patient</h3>
+                    <p>View your prescription, medication schedule and health summary</p>
+                    <ul class="role-features">
+                        <li>💊 View Prescription</li>
+                        <li>📅 Medication Schedule</li>
+                        <li>📊 Your Vitals</li>
+                        <li>👴 Easy Mode Available</li>
+                    </ul>
+                    <button class="enter-btn patient-enter">Enter as Patient →</button>
+                </a>
+            </div>
+            <div
+                style="text-align:center;margin-top:28px;display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;">
+                <button onclick="toggleTheme()" id="theme-footer-btn"
+                    style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:6px 16px;border-radius:20px;cursor:pointer;font-size:0.8rem;font-family:'DM Sans',sans-serif;">🌙
+                    Dark Mode</button>
+                <span style="color:var(--border);">|</span>
+            </div>
+        </div>
+    </div>
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            document.getElementById('theme-footer-btn').textContent = isLight ? '☀️ Light Mode' : '🌙 Dark Mode';
+        }
+        document.getElementById('theme-footer-btn').textContent = document.body.classList.contains('light') ? '☀️ Light Mode' : '🌙 Dark Mode';
+    </script>
+</body>
+
+</html>

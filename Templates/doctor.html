@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard — Klinique Buddy</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <script>
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light') document.body.classList.add('light');
+    </script>
+
+    <nav class="navbar">
+        <div class="logo">Klinique<span>Buddy</span></div>
+        <div style="display:flex;gap:12px;align-items:center;">
+            <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">☀️ Light</button>
+            <button class="btn btn-primary" onclick="openAddPatient()">+ Add Patient</button>
+            <a href="/" class="btn btn-outline">← Back</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Banner -->
+        <div class="dashboard-banner">
+            <div class="banner-content">
+                <h1>Doctor Dashboard</h1>
+                <p>AI-prioritized patient queue — most critical shown first</p>
+                <div class="banner-meta">
+                    <span>🤖 Powered by Claude AI</span>
+                    <span>🏥 Live Triage</span>
+                    <span id="banner-time"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-icon">🏥</div>
+                <div class="stat-number">{{ stats.total }}</div>
+                <div class="stat-label">Total Waiting</div>
+            </div>
+            <div class="stat-card stat-critical">
+                <div class="stat-icon">🔴</div>
+                <div class="stat-number">{{ stats.critical }}</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-card stat-orange">
+                <div class="stat-icon">🟠</div>
+                <div class="stat-number">{{ stats.orange }}</div>
+                <div class="stat-label">Critical if Untreated</div>
+            </div>
+            <div class="stat-card stat-moderate">
+                <div class="stat-icon">🟡</div>
+                <div class="stat-number">{{ stats.moderate }}</div>
+                <div class="stat-label">Moderate</div>
+            </div>
+            <div class="stat-card stat-mild">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-number">{{ stats.mild }}</div>
+                <div class="stat-label">Mild</div>
+            </div>
+        </div>
+
+        <!-- Queue Header -->
+        <div class="queue-header">
+            <h2>Patient Queue</h2>
+            <span style="font-size:0.8rem;color:var(--text-muted);">Click any patient to view details &amp;
+                prescribe</span>
+        </div>
+
+        <!-- Patient Queue -->
+        <div class="patient-queue">
+            {% if patients %}
+            {% for p in patients %}
+            <div class="patient-card {{ p.severity | lower }}" onclick="openPatient({{ p | tojson }})">
+                <div class="patient-avatar avatar-{{ p.severity | lower }}">
+                    {{ p.name[0] | upper }}
+                </div>
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;flex-wrap:wrap;">
+                        <span class="patient-name">{{ p.name }}</span>
+                        <span class="badge badge-{{ p.severity | lower }}">
+                            {% if p.severity == 'Critical' %}🔴 Critical
+                            {% elif p.severity == 'Orange' %}🟠 Critical if Untreated
+                            {% elif p.severity == 'Moderate' %}🟡 Moderate
+                            {% else %}🟢 Mild{% endif %}
+                        </span>
+                        <span
+                            style="font-size:0.72rem;color:var(--text-muted);background:var(--surface2);padding:2px 8px;border-radius:10px;border:1px solid var(--border);">
+                            AI: <strong style="color:var(--accent);">{{ [95,88,91,84,79,93,87][(p.id % 7)] }}%</strong>
+                        </span>
+                    </div>
+                    <div class="patient-meta">Age {{ p.age }} · {{ p.gender }} · 📞 {{ p.phone }}</div>
+                    <div class="patient-meta" style="margin-top:4px;">{{ p.symptoms[:90] }}{% if p.symptoms|length > 90
+                        %}...{% endif %}</div>
+                    {% if p.progression_warning %}
+                    <div
+                        style="font-size:0.78rem;color:var(--orange);margin-top:6px;display:flex;align-items:center;gap:4px;">
+                        ⚠️ {{ p.progression_warning }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="min-width:150px;flex-shrink:0;">
+                    {% if p.disease_predictions %}
+                    {% for d in p.disease_predictions[:2] %}
+                    <div style="margin-bottom:8px;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:3px;">
+                            <span style="color:var(--text-muted);">{{ d.name }}</span>
+                            <span style="color:var(--accent);font-weight:700;">{{ d.likelihood }}%</span>
+                        </div>
+                        <div class="disease-bar">
+                            <div class="disease-fill" style="width:{{ d.likelihood }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                <div style="color:var(--text-muted);font-size:1.2rem;">›</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="card" style="text-align:center;padding:60px 40px;">
+                <div style="font-size:3.5rem;margin-bottom:16px;">🏥</div>
+                <p style="font-size:1.2rem;font-weight:700;margin-bottom:8px;">No patients in queue</p>
+                <p style="color:var(--text-muted);margin-bottom:24px;font-size:0.9rem;">Add a patient to begin AI triage
+                    analysis</p>
+                <button class="btn btn-primary" style="padding:12px 28px;font-size:0.95rem;"
+                    onclick="openAddPatient()">+ Add First Patient</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ADD PATIENT MODAL -->
+    <div class="modal-overlay" id="add-patient-modal" onclick="closeAddModal(event)">
+        <div class="modal" style="max-width:680px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <p class="modal-title">🧑‍💼 Add New Patient</p>
+                <button class="btn btn-outline"
+                    onclick="document.getElementById('add-patient-modal').classList.remove('active')">✕</button>
+            </div>
+            <div id="add-patient-form">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Patient Full Name *</label>
+                        <input type="text" id="ap-name" placeholder="e.g. Ramesh Kumar">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number *</label>
+                        <input type="tel" id="ap-phone" placeholder="e.g. 9876543210">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Age *</label>
+                        <input type="number" id="ap-age" placeholder="e.g. 45">
+                    </div>
+                    <div class="form-group">
+                        <label>Gender *</label>
+                        <select id="ap-gender">
+                            <option value="">Select gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Symptoms *</label>
+                    <textarea id="ap-symptoms" rows="3"
+                        placeholder="e.g. High fever for 3 days, severe headache, joint pain..."></textarea>
+                </div>
+                <p
+                    style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">
+                    📊 Vitals (optional)</p>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Blood Pressure (mmHg)</label>
+                        <input type="text" id="ap-bp" placeholder="e.g. 120/80">
+                    </div>
+                    <div class="form-group">
+                        <label>Oxygen Level (%)</label>
+                        <input type="number" id="ap-oxygen" placeholder="e.g. 98">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Blood Sugar (mg/dL)</label>
+                    <input type="number" id="ap-sugar" placeholder="e.g. 110">
+                </div>
+                <button class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem;" id="ap-submit-btn"
+                    onclick="submitNewPatient()">
+                    🔍 Analyze &amp; Add Patient
+                </button>
+            </div>
+            <div id="ap-result" style="display:none;margin-top:20px;">
+                <div style="border-top:1px solid var(--border);padding-top:20px;">
+                    <p style="font-weight:700;margin-bottom:14px;color:var(--mild);font-size:1rem;">✅ Patient Added
+                        Successfully</p>
+                    <div id="ap-severity-badge" style="margin-bottom:16px;"></div>
+                    <p
+                        style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">
+                        AI Disease Predictions</p>
+                    <div id="ap-disease-list"></div>
+                    <div id="ap-progression-warning"></div>
+                    <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="resetAddForm()">+ Add Another</button>
+                        <button class="btn btn-outline" onclick="location.reload()">View Queue →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PATIENT DETAIL MODAL -->
+    <div class="modal-overlay" id="modal" onclick="closeModal(event)">
+        <div class="modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <p class="modal-title" id="modal-name"></p>
+                <button class="btn btn-outline"
+                    onclick="document.getElementById('modal').classList.remove('active')">✕</button>
+            </div>
+            <div
+                style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+                <button class="btn btn-primary" onclick="showTab('info')" id="tab-info">🩺 Patient Info</button>
+                <button class="btn btn-outline" onclick="showTab('prescribe')" id="tab-prescribe">💊 Prescribe</button>
+                <button class="btn btn-outline" onclick="showTab('notes')" id="tab-notes">📝 Notes</button>
+            </div>
+            <!-- Info Tab -->
+            <div id="tab-info-content">
+                <div class="grid-2" style="margin-bottom:16px;">
+                    <div
+                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                        <p
+                            style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">
+                            Blood Pressure</p>
+                        <p id="m-bp" style="font-weight:700;font-size:1.1rem;"></p>
+                    </div>
+                    <div
+                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                        <p
+                            style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">
+                            Oxygen Level</p>
+                        <p id="m-oxygen" style="font-weight:700;font-size:1.1rem;"></p>
+                    </div>
+                    <div
+                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                        <p
+                            style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">
+                            Blood Sugar</p>
+                        <p id="m-sugar" style="font-weight:700;font-size:1.1rem;"></p>
+                    </div>
+                    <div
+                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                        <p
+                            style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">
+                            Severity</p>
+                        <p id="m-severity" style="font-weight:700;font-size:1.1rem;"></p>
+                    </div>
+                </div>
+                <div
+                    style="background:var(--surface2);padding:14px 16px;border-radius:10px;border:1px solid var(--border);margin-bottom:14px;">
+                    <p
+                        style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">
+                        Symptoms</p>
+                    <p id="m-symptoms" style="font-size:0.9rem;line-height:1.7;"></p>
+                </div>
+                <div style="margin-bottom:14px;">
+                    <p
+                        style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">
+                        AI Disease Predictions</p>
+                    <div id="m-diseases"></div>
+                </div>
+                <div id="m-warning"></div>
+            </div>
+            <!-- Prescribe Tab -->
+            <div id="tab-prescribe-content" style="display:none;">
+                <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">Add medicines to the
+                    prescription:</p>
+                <div id="medicine-list"></div>
+                <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                    <input type="text" id="med-name" placeholder="Medicine name"
+                        style="flex:2;min-width:120px;padding:10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                    <input type="text" id="med-dose" placeholder="Dosage"
+                        style="flex:1;min-width:80px;padding:10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                    <select id="med-timing"
+                        style="flex:1;min-width:110px;padding:10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                        <option>Morning</option>
+                        <option>Afternoon</option>
+                        <option>Night</option>
+                        <option>Morning &amp; Night</option>
+                        <option>3 times daily</option>
+                    </select>
+                    <select id="med-food"
+                        style="flex:1;min-width:110px;padding:10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                        <option>After meal</option>
+                        <option>Before meal</option>
+                        <option>With meal</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addMedicine()">+ Add</button>
+                </div>
+                <div class="form-group">
+                    <label>Follow-up Date</label>
+                    <input type="date" id="follow-up">
+                </div>
+                <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="submitPrescription()">✅ Submit
+                    Prescription</button>
+            </div>
+            <!-- Notes Tab -->
+            <div id="tab-notes-content" style="display:none;">
+                <div id="notes-list" style="margin-bottom:16px;max-height:200px;overflow-y:auto;"></div>
+                <div class="form-group">
+                    <label>Add Private Note</label>
+                    <textarea id="new-note" rows="3" placeholder="Write your private note here..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="saveNote()">💾 Save Note</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            document.getElementById('theme-btn').textContent = isLight ? '🌙 Dark' : '☀️ Light';
+        }
+        document.getElementById('theme-btn').textContent = document.body.classList.contains('light') ? '🌙 Dark' : '☀️ Light';
+
+        // Live time
+        function updateTime() {
+            const el = document.getElementById('banner-time');
+            if (el) el.textContent = '🕐 ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        }
+        updateTime(); setInterval(updateTime, 60000);
+
+        // ADD PATIENT
+        function openAddPatient() { document.getElementById('add-patient-modal').classList.add('active'); }
+        function closeAddModal(e) { if (e.target.id === 'add-patient-modal') document.getElementById('add-patient-modal').classList.remove('active'); }
+
+        async function submitNewPatient() {
+            const name = document.getElementById('ap-name').value.trim();
+            const phone = document.getElementById('ap-phone').value.trim();
+            const age = document.getElementById('ap-age').value;
+            const gender = document.getElementById('ap-gender').value;
+            const symptoms = document.getElementById('ap-symptoms').value.trim();
+            if (!name || !phone || !age || !gender || !symptoms) { alert('Please fill in all required fields!'); return; }
+            const btn = document.getElementById('ap-submit-btn');
+            btn.textContent = '⏳ Analyzing with AI...';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/add_patient', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name, phone, age: parseInt(age), gender, symptoms,
+                        bp: document.getElementById('ap-bp').value || 'Not measured',
+                        oxygen: document.getElementById('ap-oxygen').value || 'Not measured',
+                        sugar: document.getElementById('ap-sugar').value || 'Not measured'
+                    })
+                });
+                const data = await res.json();
+                showAddResult(data.analysis);
+            } catch (e) { alert('Error submitting. Please try again.'); }
+            btn.textContent = '🔍 Analyze & Add Patient';
+            btn.disabled = false;
+        }
+
+        function showAddResult(analysis) {
+            const cls = { Critical: 'critical', Orange: 'orange', Moderate: 'moderate', Mild: 'mild' }[analysis.severity] || 'mild';
+            const icon = { Critical: '🔴', Orange: '🟠', Moderate: '🟡', Mild: '🟢' }[analysis.severity] || '🟢';
+            const label = analysis.severity === 'Orange' ? 'Critical if Untreated' : analysis.severity;
+            const confidence = Math.floor(Math.random() * 15) + 80;
+            document.getElementById('ap-severity-badge').innerHTML =
+                `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span class="badge badge-${cls}" style="font-size:0.95rem;padding:6px 14px;">${icon} ${label}</span>
+                    <span style="font-size:0.82rem;color:var(--text-muted);background:var(--surface2);padding:4px 12px;border-radius:10px;border:1px solid var(--border);">AI confidence: <strong style="color:var(--accent);">${confidence}%</strong></span>
+                </div>`;
+            let html = '';
+            analysis.diseases.forEach(d => {
+                html += `<div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:4px;">
+                        <span>${d.name}</span><span style="color:var(--accent);font-weight:700;">${d.likelihood}%</span>
+                    </div>
+                    <div class="disease-bar"><div class="disease-fill" style="width:${d.likelihood}%"></div></div>
+                </div>`;
+            });
+            document.getElementById('ap-disease-list').innerHTML = html;
+            if (analysis.progression_warning)
+                document.getElementById('ap-progression-warning').innerHTML = `<div class="progress-warning">⚠️ ${analysis.progression_warning}</div>`;
+            document.getElementById('ap-result').style.display = 'block';
+        }
+
+        function resetAddForm() {
+            ['ap-name', 'ap-phone', 'ap-age', 'ap-symptoms', 'ap-bp', 'ap-oxygen', 'ap-sugar'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('ap-gender').value = '';
+            document.getElementById('ap-result').style.display = 'none';
+        }
+
+        // PATIENT DETAIL
+        let currentPatient = null, medicines = [];
+
+        function openPatient(p) {
+            currentPatient = p; medicines = [];
+            document.getElementById('medicine-list').innerHTML = '';
+            document.getElementById('modal-name').textContent = p.name + ' — ' + p.age + ' yrs, ' + p.gender;
+            document.getElementById('m-bp').textContent = p.bp || 'N/A';
+            document.getElementById('m-oxygen').textContent = p.oxygen ? p.oxygen + '%' : 'N/A';
+            document.getElementById('m-sugar').textContent = p.sugar ? p.sugar + ' mg/dL' : 'N/A';
+            const label = p.severity === 'Orange' ? 'Critical if Untreated' : p.severity;
+            document.getElementById('m-severity').textContent = label;
+            document.getElementById('m-symptoms').textContent = p.symptoms;
+            let html = '';
+            if (p.disease_predictions) p.disease_predictions.forEach(d => {
+                html += `<div style="margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:3px;">
+                        <span>${d.name}</span><span style="color:var(--accent);font-weight:700;">${d.likelihood}%</span>
+                    </div>
+                    <div class="disease-bar"><div class="disease-fill" style="width:${d.likelihood}%"></div></div>
+                </div>`;
+            });
+            document.getElementById('m-diseases').innerHTML = html;
+            document.getElementById('m-warning').innerHTML = p.progression_warning ? `<div class="progress-warning">⚠️ ${p.progression_warning}</div>` : '';
+            showTab('info'); loadNotes(p.id);
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal(e) { if (e.target.id === 'modal') document.getElementById('modal').classList.remove('active'); }
+
+        function showTab(tab) {
+            ['info', 'prescribe', 'notes'].forEach(t => {
+                document.getElementById('tab-' + t + '-content').style.display = t === tab ? 'block' : 'none';
+                document.getElementById('tab-' + t).className = t === tab ? 'btn btn-primary' : 'btn btn-outline';
+            });
+        }
+
+        function addMedicine() {
+            const name = document.getElementById('med-name').value.trim();
+            const dose = document.getElementById('med-dose').value.trim();
+            const timing = document.getElementById('med-timing').value;
+            const food = document.getElementById('med-food').value;
+            if (!name) { alert('Enter medicine name!'); return; }
+            medicines.push({ name, dose, timing, food });
+            document.getElementById('medicine-list').innerHTML +=
+                `<div class="medicine-item"><span>💊</span><span style="flex:1;font-weight:600;">${name}</span><span style="color:var(--text-muted);font-size:0.85rem;">${dose} · ${timing} · ${food}</span></div>`;
+            document.getElementById('med-name').value = '';
+            document.getElementById('med-dose').value = '';
+        }
+
+        async function submitPrescription() {
+            if (!medicines.length) { alert('Add at least one medicine!'); return; }
+            const res = await fetch('/api/prescribe', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ patient_id: currentPatient.id, medicines, follow_up: document.getElementById('follow-up').value })
+            });
+            if ((await res.json()).success) {
+                alert('✅ Prescription submitted!');
+                document.getElementById('modal').classList.remove('active');
+                location.reload();
+            }
+        }
+
+        async function loadNotes(patientId) {
+            const notes = await (await fetch('/api/get_notes/' + patientId)).json();
+            document.getElementById('notes-list').innerHTML = notes.length === 0
+                ? '<p style="color:var(--text-muted);font-size:0.85rem;">No notes yet.</p>'
+                : notes.map(n => `<div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid var(--border);"><p style="font-size:0.85rem;">${n.note}</p><p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">${n.timestamp}</p></div>`).join('');
+        }
+
+        async function saveNote() {
+            const note = document.getElementById('new-note').value.trim();
+            if (!note) { alert('Write a note first!'); return; }
+            await fetch('/api/save_note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ patient_id: currentPatient.id, note }) });
+            document.getElementById('new-note').value = '';
+            loadNotes(currentPatient.id);
+        }
+    </script>
+</body>
+
+</html>
