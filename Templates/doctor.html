@@ -80,7 +80,8 @@
         <div class="patient-queue">
             {% if patients %}
             {% for p in patients %}
-            <div class="patient-card {{ p.severity | lower }}" onclick="openPatient({{ p | tojson }})">
+            <div class="patient-card {{ p.severity | lower }}" data-patient='{{ p | tojson | safe }}'
+                onclick="openPatient(this)">
                 <div class="patient-avatar avatar-{{ p.severity | lower }}">
                     {{ p.name[0] | upper }}
                 </div>
@@ -117,7 +118,7 @@
                             <span style="color:var(--accent);font-weight:700;">{{ d.likelihood }}%</span>
                         </div>
                         <div class="disease-bar">
-                            <div class="disease-fill" style="width:{{ d.likelihood }}%"></div>
+                            <div class="disease-fill" style="width:{{ d.likelihood | int }}%"></div>
                         </div>
                     </div>
                     {% endfor %}
@@ -408,7 +409,8 @@
         // PATIENT DETAIL
         let currentPatient = null, medicines = [];
 
-        function openPatient(p) {
+        function openPatient(el) {
+            const p = JSON.parse(el.getAttribute('data-patient'));
             currentPatient = p; medicines = [];
             document.getElementById('medicine-list').innerHTML = '';
             document.getElementById('modal-name').textContent = p.name + ' — ' + p.age + ' yrs, ' + p.gender;
