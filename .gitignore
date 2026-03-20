@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+kritiquebuddy.db
+.env
+*.db
