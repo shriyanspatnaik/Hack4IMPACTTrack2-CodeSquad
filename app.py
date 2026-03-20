@@ -9,6 +9,14 @@ import re
 app = Flask(__name__, static_folder='Static', static_url_path='/static')
 app.secret_key = 'kritiquebuddy_secret_2024'
 
+DOCTORS = {
+    'dr_anil':   {'name': 'Dr. Anil Sharma',    'spec': 'MBBS, MD — General Physician',  'room': 'Room 204', 'phone': '+91 98100 11111'},
+    'dr_priya':  {'name': 'Dr. Priya Mehra',    'spec': 'MD, DM — Cardiologist',          'room': 'Room 301', 'phone': '+91 98100 22222'},
+    'dr_rajan':  {'name': 'Dr. Rajan Verma',    'spec': 'MBBS, MD — Pulmonologist',       'room': 'Room 108', 'phone': '+91 98100 33333'},
+    'dr_sunita': {'name': 'Dr. Sunita Rao',     'spec': 'MBBS, MD — Diabetologist',       'room': 'Room 212', 'phone': '+91 98100 44444'},
+    'dr_karan':  {'name': 'Dr. Karan Malhotra', 'spec': 'MBBS, DNB — Emergency Medicine', 'room': 'Emergency Wing', 'phone': '+91 98100 55555'},
+}
+
 
 def init_db():
     conn = sqlite3.connect('kritiquebuddy.db')
@@ -20,6 +28,7 @@ def init_db():
                   bp TEXT, oxygen TEXT, sugar TEXT,
                   severity TEXT, severity_score INTEGER,
                   disease_predictions TEXT, progression_warning TEXT,
+                  doctor_key TEXT, doctor_name TEXT, doctor_spec TEXT, doctor_room TEXT,
                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                   status TEXT DEFAULT 'waiting')''')
     c.execute('''CREATE TABLE IF NOT EXISTS prescriptions
@@ -31,6 +40,100 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   patient_id INTEGER, note TEXT,
                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    conn.commit()
+
+    # Add mock patients if table is empty
+    c.execute('SELECT COUNT(*) FROM patients')
+    count = c.fetchone()[0]
+    if count == 0:
+        mock_patients = [
+            {
+                'name': 'Priya Sharma', 'phone': '9876543201', 'age': 34, 'gender': 'Female',
+                'symptoms': 'High fever 104°F for 2 days, severe headache, rash on arms and legs, joint pain',
+                'bp': '90/60', 'oxygen': '96', 'sugar': '88',
+                'severity': 'Critical', 'severity_score': 1,
+                'diseases': [{'name': 'Dengue Fever', 'likelihood': 72}, {'name': 'Viral Fever', 'likelihood': 18}, {'name': 'Typhoid', 'likelihood': 10}],
+                'warning': 'Platelet count may drop rapidly. Requires immediate hospitalization.',
+                'doctor_key': 'dr_karan', 'doctor_name': 'Dr. Karan Malhotra', 'doctor_spec': 'MBBS, DNB — Emergency Medicine', 'doctor_room': 'Emergency Wing'
+            },
+            {
+                'name': 'Ramesh Gupta', 'phone': '9876543202', 'age': 58, 'gender': 'Male',
+                'symptoms': 'Chest tightness, shortness of breath, mild left arm pain since morning, sweating',
+                'bp': '150/95', 'oxygen': '94', 'sugar': '140',
+                'severity': 'Orange', 'severity_score': 2,
+                'diseases': [{'name': 'Angina / Cardiac Event', 'likelihood': 65}, {'name': 'Hypertension Crisis', 'likelihood': 25}, {'name': 'Anxiety Attack', 'likelihood': 10}],
+                'warning': 'Possible cardiac event. Must be seen within 30 minutes to prevent serious complications.',
+                'doctor_key': 'dr_priya', 'doctor_name': 'Dr. Priya Mehra', 'doctor_spec': 'MD, DM — Cardiologist', 'doctor_room': 'Room 301'
+            },
+            {
+                'name': 'Sunita Patel', 'phone': '9876543203', 'age': 45, 'gender': 'Female',
+                'symptoms': 'Persistent cough for 3 weeks, mild fever in evenings, night sweats, weight loss of 3kg',
+                'bp': '118/76', 'oxygen': '97', 'sugar': '102',
+                'severity': 'Moderate', 'severity_score': 3,
+                'diseases': [{'name': 'Pulmonary Tuberculosis', 'likelihood': 55}, {'name': 'Chronic Bronchitis', 'likelihood': 30}, {'name': 'Pneumonia', 'likelihood': 15}],
+                'warning': 'If TB is confirmed, isolation and immediate treatment required to prevent spread.',
+                'doctor_key': 'dr_rajan', 'doctor_name': 'Dr. Rajan Verma', 'doctor_spec': 'MBBS, MD — Pulmonologist', 'doctor_room': 'Room 108'
+            },
+            {
+                'name': 'Arun Kumar', 'phone': '9876543204', 'age': 62, 'gender': 'Male',
+                'symptoms': 'Frequent urination, excessive thirst, blurred vision, fatigue for past month',
+                'bp': '130/85', 'oxygen': '98', 'sugar': '320',
+                'severity': 'Moderate', 'severity_score': 3,
+                'diseases': [{'name': 'Uncontrolled Type 2 Diabetes', 'likelihood': 80}, {'name': 'Diabetic Neuropathy', 'likelihood': 12}, {'name': 'Hypertension', 'likelihood': 8}],
+                'warning': 'Blood sugar dangerously high. Risk of diabetic ketoacidosis if untreated.',
+                'doctor_key': 'dr_sunita', 'doctor_name': 'Dr. Sunita Rao', 'doctor_spec': 'MBBS, MD — Diabetologist', 'doctor_room': 'Room 212'
+            },
+            {
+                'name': 'Meera Joshi', 'phone': '9876543205', 'age': 28, 'gender': 'Female',
+                'symptoms': 'Mild cold, runny nose, sore throat for 2 days, no fever',
+                'bp': '110/70', 'oxygen': '99', 'sugar': '95',
+                'severity': 'Mild', 'severity_score': 4,
+                'diseases': [{'name': 'Common Cold', 'likelihood': 75}, {'name': 'Allergic Rhinitis', 'likelihood': 20}, {'name': 'Sinusitis', 'likelihood': 5}],
+                'warning': 'Likely viral. Should resolve in 5–7 days with rest and hydration.',
+                'doctor_key': 'dr_anil', 'doctor_name': 'Dr. Anil Sharma', 'doctor_spec': 'MBBS, MD — General Physician', 'doctor_room': 'Room 204'
+            },
+        ]
+
+        for p in mock_patients:
+            c.execute('''INSERT INTO patients (name, phone, age, gender, symptoms, bp, oxygen, sugar,
+                         severity, severity_score, disease_predictions, progression_warning,
+                         doctor_key, doctor_name, doctor_spec, doctor_room)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      (p['name'], p['phone'], p['age'], p['gender'], p['symptoms'],
+                       p['bp'], p['oxygen'], p['sugar'], p['severity'], p['severity_score'],
+                       json.dumps(p['diseases']), p['warning'],
+                       p['doctor_key'], p['doctor_name'], p['doctor_spec'], p['doctor_room']))
+
+        # Add sample prescriptions for two patients
+        conn.commit()
+        c.execute('SELECT id FROM patients WHERE name="Meera Joshi"')
+        meera = c.fetchone()
+        if meera:
+            c.execute('''INSERT INTO prescriptions (patient_id, medicines, notes, follow_up)
+                         VALUES (?, ?, ?, ?)''',
+                      (meera[0], json.dumps([
+                          {'name': 'Cetirizine', 'dose': '10mg',
+                              'timing': 'Night', 'food': 'After meal'},
+                          {'name': 'Paracetamol', 'dose': '500mg',
+                              'timing': 'Morning & Night', 'food': 'After meal'},
+                          {'name': 'Vitamin C', 'dose': '500mg',
+                              'timing': 'Morning', 'food': 'With meal'}
+                      ]), 'Rest well, drink warm fluids', '2026-03-27'))
+
+        c.execute('SELECT id FROM patients WHERE name="Arun Kumar"')
+        arun = c.fetchone()
+        if arun:
+            c.execute('''INSERT INTO prescriptions (patient_id, medicines, notes, follow_up)
+                         VALUES (?, ?, ?, ?)''',
+                      (arun[0], json.dumps([
+                          {'name': 'Metformin', 'dose': '500mg',
+                              'timing': 'Morning & Night', 'food': 'After meal'},
+                          {'name': 'Glipizide', 'dose': '5mg',
+                              'timing': 'Morning', 'food': 'Before meal'},
+                          {'name': 'Amlodipine', 'dose': '5mg',
+                              'timing': 'Night', 'food': 'After meal'}
+                      ]), 'Strict diet control required. Avoid sugary foods.', '2026-03-28'))
+
     conn.commit()
     conn.close()
 
@@ -101,7 +204,7 @@ def patient():
             if pat.get('medicines'):
                 pat['medicines'] = json.loads(pat['medicines'])
             return render_template('patient.html', patient=pat, lang=lang)
-        return render_template('patient.html', error="No record found. Please check your details.", lang=lang)
+        return render_template('patient.html', error="No record found. Please check your name and phone number.", lang=lang)
     return render_template('patient.html')
 
 
@@ -110,16 +213,25 @@ def add_patient():
     data = request.json
     analysis = analyze_with_claude(data)
     severity_scores = {'Critical': 1, 'Orange': 2, 'Moderate': 3, 'Mild': 4}
+
+    doctor_key = data.get('doctor_key', '')
+    doctor_info = DOCTORS.get(doctor_key, {})
+
     conn = sqlite3.connect('kritiquebuddy.db')
     c = conn.cursor()
     c.execute('''INSERT INTO patients (name, phone, age, gender, symptoms, bp, oxygen, sugar,
-                 severity, severity_score, disease_predictions, progression_warning)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                 severity, severity_score, disease_predictions, progression_warning,
+                 doctor_key, doctor_name, doctor_spec, doctor_room)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
               (data['name'], data['phone'], data['age'], data['gender'],
                data['symptoms'], data['bp'], data['oxygen'], data['sugar'],
                analysis['severity'], severity_scores.get(
                    analysis['severity'], 4),
-               json.dumps(analysis['diseases']), analysis['progression_warning']))
+               json.dumps(analysis['diseases']
+                          ), analysis['progression_warning'],
+               doctor_key, doctor_info.get(
+                   'name', data.get('doctor_name', '')),
+               doctor_info.get('spec', ''), doctor_info.get('room', '')))
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'analysis': analysis})
