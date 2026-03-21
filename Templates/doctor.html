@@ -583,9 +583,9 @@
                 updateSeenSection();
             }, 300);
             // Call API to mark seen
-            fetch('/api/prescribe', {
+            fetch('/api/mark_seen', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ patient_id: patientId, medicines: [], follow_up: '' })
+                body: JSON.stringify({ patient_id: patientId })
             }).catch(() => { });
         }
 

@@ -244,6 +244,16 @@ def prescribe():
     c = conn.cursor()
     c.execute('INSERT INTO prescriptions (patient_id, medicines, notes, follow_up) VALUES (?, ?, ?, ?)',
               (data['patient_id'], json.dumps(data['medicines']), data.get('notes', ''), data.get('follow_up', '')))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/api/mark_seen', methods=['POST'])
+def mark_seen():
+    data = request.json
+    conn = sqlite3.connect('kritiquebuddy.db')
+    c = conn.cursor()
     c.execute('UPDATE patients SET status="seen" WHERE id=?',
               (data['patient_id'],))
     conn.commit()
