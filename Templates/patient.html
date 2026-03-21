@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"
         rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
-        /* Elderly Mode */
         body.elderly-mode {
             font-size: 20px !important;
         }
@@ -38,6 +38,25 @@
         body.elderly-mode .btn {
             font-size: 1.1rem !important;
             padding: 14px 20px !important;
+        }
+
+        /* Language Selector */
+        .lang-select {
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lang-select:focus {
+            outline: none;
+            border-color: var(--accent);
         }
 
         /* Doctor Card */
@@ -108,7 +127,6 @@
             color: var(--text-muted);
         }
 
-        /* Call Button */
         .call-btn {
             background: var(--mild);
             color: #fff;
@@ -314,7 +332,92 @@
             gap: 8px;
         }
 
-        /* Easy Mode 4 Buttons */
+        /* Vital Card Clickable */
+        .vital-card-clickable {
+            background: var(--surface2);
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .vital-card-clickable:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        /* Vitals Modal */
+        .vitals-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .vitals-modal-overlay.active {
+            display: flex;
+        }
+
+        .vitals-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 28px;
+            width: 92%;
+            max-width: 560px;
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+
+        .vital-history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            font-size: 0.88rem;
+        }
+
+        .add-vital-form {
+            background: var(--surface2);
+            border: 1.5px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Med Background Info */
+        .med-bg-info {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+
+        .med-bg-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .med-bg-value {
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        /* Easy Mode */
         .easy-menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -370,7 +473,6 @@
             background: rgba(249, 115, 22, 0.05);
         }
 
-        /* Easy Section */
         .easy-section {
             display: none;
             animation: fadeIn 0.3s ease;
@@ -427,38 +529,50 @@
         <div class="logo">Klinique<span>Buddy</span></div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">☀️ Light</button>
-            <button class="theme-toggle" id="lang-btn" onclick="toggleLang()">🌐 हिंदी</button>
+            <select class="lang-select" id="lang-select" onchange="changeLang(this.value)">
+                <option value="en">🌐 English</option>
+                <option value="hi">हिंदी</option>
+                <option value="od">ଓଡ଼ିଆ</option>
+                <option value="bn">বাংলা</option>
+                <option value="ta">தமிழ்</option>
+            </select>
             <button class="btn btn-outline" onclick="toggleElderly()" id="elderly-btn">👴 Easy Mode</button>
-            <a href="/" class="btn btn-outline">← <span class="t" data-en="Back" data-hi="वापस">Back</span></a>
+            <a href="/" class="btn btn-outline">← <span class="t" data-en="Back" data-hi="वापस" data-od="ଫେରନ୍ତୁ"
+                    data-bn="ফিরুন" data-ta="திரும்பு">Back</span></a>
         </div>
     </nav>
 
     <div class="container" style="max-width:720px;">
 
         {% if not patient and not error %}
-        <!-- LOGIN — same for both modes, just bigger in elderly -->
         <div class="portal-header" style="margin-top:12px;margin-bottom:28px;">
             <div class="portal-header-content">
                 <h1 style="font-family:'Syne',sans-serif;font-size:1.7rem;margin-bottom:6px;" class="t"
-                    data-en="Patient Portal" data-hi="मरीज़ पोर्टल">Patient Portal</h1>
+                    data-en="Patient Portal" data-hi="मरीज़ पोर्टल" data-od="ରୋଗୀ ପୋର୍ଟାଲ" data-bn="রোগী পোর্টাল"
+                    data-ta="நோயாளி போர்டல்">Patient Portal</h1>
                 <p style="color:var(--text-muted);font-size:0.9rem;" class="t"
-                    data-en="View your prescription and medication schedule" data-hi="अपना नुस्खा और दवाई का समय देखें">
-                    View your prescription and medication schedule</p>
+                    data-en="View your prescription and medication schedule" data-hi="अपना नुस्खा और दवाई का समय देखें"
+                    data-od="ଆପଣଙ୍କ ନୁସ୍ଖା ଓ ଔଷଧ ସ୍ଥିତି ଦେଖ" data-bn="আপনার প্রেসক্রিপশন এবং ওষুধের সময় দেখুন"
+                    data-ta="உங்கள் மருந்து சீட்டு மற்றும் அட்டவணை பார்க்கவும்">View your prescription and medication
+                    schedule</p>
             </div>
         </div>
         <div class="card">
             <form method="POST" action="/patient">
                 <div class="form-group">
-                    <label class="t" data-en="Your Full Name" data-hi="आपका पूरा नाम">Your Full Name</label>
+                    <label class="t" data-en="Your Full Name" data-hi="आपका पूरा नाम" data-od="ଆପଣଙ୍କ ପୂର୍ଣ ନାମ"
+                        data-bn="আপনার পুরো নাম" data-ta="உங்கள் முழு பெயர்">Your Full Name</label>
                     <input type="text" name="name" placeholder="Enter your name" required style="padding:14px;">
                 </div>
                 <div class="form-group">
-                    <label class="t" data-en="Phone Number" data-hi="फ़ोन नंबर">Phone Number</label>
+                    <label class="t" data-en="Phone Number" data-hi="फ़ोन नंबर" data-od="ଫୋନ ନମ୍ବର" data-bn="ফোন নম্বর"
+                        data-ta="தொலைபேசி எண்">Phone Number</label>
                     <input type="tel" name="phone" placeholder="Enter your phone number" required style="padding:14px;">
                 </div>
                 <input type="hidden" name="lang" id="hidden-lang" value="en">
                 <button type="submit" class="btn btn-primary" style="width:100%;padding:15px;font-size:1rem;">
-                    🔍 <span class="t" data-en="Find My Record" data-hi="मेरा रिकॉर्ड खोजें">Find My Record</span>
+                    🔍 <span class="t" data-en="Find My Record" data-hi="मेरा रिकॉर्ड खोजें" data-od="ମୋ ରେକର୍ଡ ଖୋଜ"
+                        data-bn="আমার রেকর্ড খুঁজুন" data-ta="என் பதிவைக் கண்டுபிடி">Find My Record</span>
                 </button>
             </form>
         </div>
@@ -467,26 +581,30 @@
         <div class="card" style="margin-top:40px;text-align:center;padding:48px;">
             <div style="font-size:3rem;margin-bottom:14px;">😕</div>
             <p style="font-weight:700;font-size:1.15rem;margin-bottom:8px;" class="t" data-en="Record Not Found"
-                data-hi="रिकॉर्ड नहीं मिला">Record Not Found</p>
+                data-hi="रिकॉर्ड नहीं मिला" data-od="ରେକର୍ଡ ମିଳିଲା ନାହିଁ" data-bn="রেকর্ড পাওয়া যায়নি"
+                data-ta="பதிவு கிடைக்கவில்லை">Record Not Found</p>
             <p style="color:var(--text-muted);margin:12px 0;">{{ error }}</p>
             <a href="/patient" class="btn btn-primary" style="display:inline-flex;margin-top:8px;">
-                <span class="t" data-en="Try Again" data-hi="फिर कोशिश करें">Try Again</span>
+                <span class="t" data-en="Try Again" data-hi="फिर कोशिश करें" data-od="ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ"
+                    data-bn="আবার চেষ্টা করুন" data-ta="மீண்டும் முயற்சிக்கவும்">Try Again</span>
             </a>
         </div>
 
         {% else %}
 
-        <!-- NORMAL MODE VIEW -->
+        <!-- NORMAL MODE -->
         <div id="normal-view">
             <div class="portal-header" style="margin-top:12px;margin-bottom:20px;">
                 <div class="portal-header-content">
                     <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;margin-bottom:4px;">
-                        <span class="t" data-en="Hello" data-hi="नमस्ते">Hello</span>, {{ patient.name }}! 👋
+                        <span class="t" data-en="Hello" data-hi="नमस्ते" data-od="ନମସ୍କାର" data-bn="নমস্কার"
+                            data-ta="வணக்கம்">Hello</span>, {{ patient.name }}! 👋
                     </h2>
                     <p style="color:var(--text-muted);font-size:0.88rem;" class="t"
                         data-en="Here is your medical summary and prescription"
-                        data-hi="यहाँ आपकी मेडिकल जानकारी और दवाइयाँ हैं">Here is your medical summary and prescription
-                    </p>
+                        data-hi="यहाँ आपकी मेडिकल जानकारी और दवाइयाँ हैं" data-od="ଏଠାରେ ଆପଣଙ୍କ ଚିକିତ୍ସା ସାରାଂଶ ଅଛି"
+                        data-bn="এখানে আপনার চিকিৎসা সারসংক্ষেপ আছে" data-ta="உங்கள் மருத்துவ சுருக்கம் இங்கே உள்ளது">
+                        Here is your medical summary and prescription</p>
                 </div>
             </div>
 
@@ -498,19 +616,20 @@
                     <div class="doctor-spec">{{ patient.doctor_spec or 'MBBS, MD — General Physician' }}</div>
                     <div class="doctor-tags">
                         <span class="doctor-tag">🏥 City Medical Center</span>
-                        <span class="doctor-tag">⏰ Mon–Sat, 9AM–6PM</span>
                         <span class="doctor-tag">📍 {{ patient.doctor_room or 'Room 204' }}</span>
                     </div>
                 </div>
                 <button class="call-btn" onclick="showCallPopup()">
-                    📞 <span class="t" data-en="Call Doctor" data-hi="कॉल करें">Call Doctor</span>
+                    📞 <span class="t" data-en="Call Doctor" data-hi="कॉल करें" data-od="ଡାକ୍ତରଙ୍କୁ ଡାକ"
+                        data-bn="ডাক্তারকে ডাকুন" data-ta="மருத்துவரை அழை">Call Doctor</span>
                 </button>
             </div>
 
             <!-- Severity -->
             <div class="card" style="margin-bottom:14px;">
                 <p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:10px;"
-                    class="t" data-en="Your Severity Level" data-hi="आपकी तकलीफ का स्तर">Your Severity Level</p>
+                    class="t" data-en="Your Severity Level" data-hi="आपकी तकलीफ का स्तर" data-od="ଆପଣଙ୍କ ଗୁରୁତ୍ୱ ସ୍ତର"
+                    data-bn="আপনার তীব্রতার মাত্রা" data-ta="உங்கள் தீவிரத்தன்மை நிலை">Your Severity Level</p>
                 <span class="badge badge-{{ patient.severity | lower }}" style="font-size:0.95rem;padding:7px 16px;">
                     {% if patient.severity == 'Critical' %}🔴 Critical
                     {% elif patient.severity == 'Orange' %}🟠 Critical if Untreated
@@ -522,19 +641,39 @@
                 {% endif %}
             </div>
 
+            <!-- Current Medications (read-only) -->
+            {% if patient.current_medications %}
+            <div class="med-bg-info">
+                <div class="med-bg-label">💊 <span class="t" data-en="Current Medications" data-hi="वर्तमान दवाइयाँ"
+                        data-od="ବର୍ତ୍ତମାନ ଔଷଧ" data-bn="বর্তমান ওষুধ" data-ta="தற்போதைய மருந்துகள்">Current
+                        Medications</span></div>
+                <div class="med-bg-value">{{ patient.current_medications }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Known Conditions (read-only) -->
+            {% if patient.known_conditions %}
+            <div class="med-bg-info">
+                <div class="med-bg-label">⚠️ <span class="t" data-en="Known Conditions / Allergies"
+                        data-hi="ज्ञात बीमारियाँ / एलर्जी" data-od="ଜ୍ଞାତ ଅବସ୍ଥା / ଆଲର୍ଜି"
+                        data-bn="পরিচিত রোগ / অ্যালার্জি" data-ta="அறியப்பட்ட நிலைகள் / ஒவ்வாமை">Known Conditions /
+                        Allergies</span></div>
+                <div class="med-bg-value">{{ patient.known_conditions }}</div>
+            </div>
+            {% endif %}
+
             <!-- Medicines -->
             {% if patient.medicines %}
             <div class="card" style="margin-bottom:14px;">
-                <div class="section-title">💊 <span class="t" data-en="Your Medicines" data-hi="आपकी दवाइयाँ">Your
-                        Medicines</span></div>
+                <div class="section-title">💊 <span class="t" data-en="Your Medicines" data-hi="आपकी दवाइयाँ"
+                        data-od="ଆପଣଙ୍କ ଔଷଧ" data-bn="আপনার ওষুধ" data-ta="உங்கள் மருந்துகள்">Your Medicines</span>
+                </div>
                 <div class="reminder-strip">
                     <span style="font-size:1.3rem;">⏰</span>
                     <div style="flex:1;">
                         <p style="font-size:0.82rem;font-weight:600;margin-bottom:2px;" class="t"
-                            data-en="Daily Reminder Times" data-hi="दवाई का समय">Daily Reminder Times</p>
-                        <p style="font-size:0.75rem;color:var(--text-muted);" class="t"
-                            data-en="Take medicines at these times every day" data-hi="हर दिन इन समयों पर दवाई लें">Take
-                            medicines at these times every day</p>
+                            data-en="Daily Reminder Times" data-hi="दवाई का समय" data-od="ଦୈନିକ ସ୍ମୃତି ସମୟ"
+                            data-bn="দৈনিক স্মারক সময়" data-ta="தினசரி நினைவூட்டல் நேரம்">Daily Reminder Times</p>
                     </div>
                     <div class="reminder-times">
                         <span class="reminder-time">🌅 8:00 AM</span>
@@ -555,59 +694,73 @@
                     </span>
                 </div>
                 {% endfor %}
+                {% if patient.follow_up %}
                 <div
                     style="margin-top:14px;padding:12px 16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;gap:10px;">
                     <span style="font-size:1.2rem;">📅</span>
                     <div>
                         <p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;"
-                            class="t" data-en="Follow-up Appointment" data-hi="अगली मुलाकात">Follow-up Appointment</p>
-                        <p style="font-weight:700;font-size:0.95rem;">{% if patient.follow_up %}{{ patient.follow_up
-                            }}{% else %}<span style="color:var(--text-muted);font-weight:400;" class="t"
-                                data-en="Not scheduled yet" data-hi="अभी तय नहीं">Not scheduled yet</span>{% endif %}
-                        </p>
+                            class="t" data-en="Follow-up Appointment" data-hi="अगली मुलाकात" data-od="ଅନୁସରଣ ନିଯୁକ୍ତି"
+                            data-bn="ফলো-আপ অ্যাপয়েন্টমেন্ট" data-ta="தொடர் சந்திப்பு">Follow-up Appointment</p>
+                        <p style="font-weight:700;font-size:0.95rem;">{{ patient.follow_up }}</p>
                     </div>
                 </div>
+                {% endif %}
             </div>
             {% else %}
             <div class="card" style="margin-bottom:14px;text-align:center;padding:36px;">
                 <p style="font-size:2rem;margin-bottom:12px;">⏳</p>
                 <p style="font-weight:700;margin-bottom:6px;" class="t" data-en="Prescription Pending"
-                    data-hi="नुस्खा मिलना बाकी है">Prescription Pending</p>
+                    data-hi="नुस्खा मिलना बाकी है" data-od="ନୁସ୍ଖା ବାକି ଅଛି" data-bn="প্রেসক্রিপশন বাকি আছে"
+                    data-ta="மருந்து சீட்டு நிலுவையில் உள்ளது">Prescription Pending</p>
                 <p style="color:var(--text-muted);font-size:0.88rem;" class="t"
                     data-en="Your doctor will issue your prescription shortly."
-                    data-hi="आपका डॉक्टर जल्द ही नुस्खा देगा।">Your doctor will issue your prescription shortly.</p>
+                    data-hi="आपका डॉक्टर जल्द ही नुस्खा देगा।" data-od="ଆପଣଙ୍କ ଡାକ୍ତର ଶୀଘ୍ର ନୁସ୍ଖା ଦେବେ।"
+                    data-bn="আপনার ডাক্তার শীঘ্রই প্রেসক্রিপশন দেবেন।"
+                    data-ta="உங்கள் மருத்துவர் விரைவில் மருந்து சீட்டு வழங்குவார்.">Your doctor will issue your
+                    prescription shortly.</p>
             </div>
             {% endif %}
 
-            <!-- Vitals -->
+            <!-- Vitals — Clickable -->
             <div class="card" style="margin-bottom:14px;">
-                <div class="section-title">📊 <span class="t" data-en="Your Vitals" data-hi="आपके स्वास्थ्य आँकड़े">Your
-                        Vitals</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <div class="section-title" style="margin-bottom:0;">📊 <span class="t" data-en="Your Vitals"
+                            data-hi="आपके स्वास्थ्य आँकड़े" data-od="ଆପଣଙ୍କ ସ୍ୱାସ୍ଥ୍ୟ ତଥ୍ୟ"
+                            data-bn="আপনার স্বাস্থ্য তথ্য" data-ta="உங்கள் உடல் நிலை">Your Vitals</span></div>
+                    <span style="font-size:0.75rem;color:var(--text-muted);" class="t" data-en="Click to view history"
+                        data-hi="इतिहास देखने के लिए क्लिक करें" data-od="ଇତିହାସ ଦେଖିବାକୁ କ୍ଲିକ୍ କରନ୍ତୁ"
+                        data-bn="ইতিহাস দেখতে ক্লিক করুন" data-ta="வரலாறு பார்க்க கிளிக் செய்யவும்">Click to view
+                        history</span>
+                </div>
                 <div class="grid-2">
-                    <div
-                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                    <div class="vital-card-clickable" onclick="openVitalsModal('bp', {{ patient.id }})">
                         <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
-                            class="t" data-en="Blood Pressure" data-hi="ब्लड प्रेशर">Blood Pressure</p>
+                            class="t" data-en="Blood Pressure" data-hi="ब्लड प्रेशर" data-od="ରକ୍ତଚାପ" data-bn="রক্তচাপ"
+                            data-ta="இரத்த அழுத்தம்">Blood Pressure</p>
                         <p style="font-weight:700;font-size:1.1rem;">{{ patient.bp or 'N/A' }}</p>
+                        <p style="font-size:0.7rem;color:var(--accent);margin-top:4px;">📈 View history →</p>
                     </div>
-                    <div
-                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                    <div class="vital-card-clickable" onclick="openVitalsModal('oxygen', {{ patient.id }})">
                         <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
-                            class="t" data-en="Oxygen Level" data-hi="ऑक्सीजन स्तर">Oxygen Level</p>
+                            class="t" data-en="Oxygen Level" data-hi="ऑक्सीजन स्तर" data-od="ଅମ୍ଳଜାନ ସ୍ତର"
+                            data-bn="অক্সিজেন মাত্রা" data-ta="ஆக்சிஜன் அளவு">Oxygen Level</p>
                         <p style="font-weight:700;font-size:1.1rem;">{{ patient.oxygen or 'N/A' }}%</p>
+                        <p style="font-size:0.7rem;color:var(--accent);margin-top:4px;">📈 View history →</p>
                     </div>
-                    <div
-                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                    <div class="vital-card-clickable" onclick="openVitalsModal('sugar', {{ patient.id }})">
                         <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
-                            class="t" data-en="Blood Sugar" data-hi="ब्लड शुगर">Blood Sugar</p>
+                            class="t" data-en="Blood Sugar" data-hi="ब्लड शुगर" data-od="ରକ୍ତ ଶର୍କରା"
+                            data-bn="রক্তে শর্করা" data-ta="இரத்த சர்க்கரை">Blood Sugar</p>
                         <p style="font-weight:700;font-size:1.1rem;">{{ patient.sugar or 'N/A' }} mg/dL</p>
+                        <p style="font-size:0.7rem;color:var(--accent);margin-top:4px;">📈 View history →</p>
                     </div>
                     <div
-                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1px solid var(--border);">
+                        style="background:var(--surface2);padding:12px 16px;border-radius:10px;border:1.5px solid var(--border);">
                         <p style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"
-                            class="t" data-en="Age" data-hi="उम्र">Age</p>
+                            class="t" data-en="Age" data-hi="उम्र" data-od="ବୟସ" data-bn="বয়স" data-ta="வயது">Age</p>
                         <p style="font-weight:700;font-size:1.1rem;">{{ patient.age }} <span class="t" data-en="years"
-                                data-hi="वर्ष">years</span></p>
+                                data-hi="वर्ष" data-od="ବର୍ଷ" data-bn="বছর" data-ta="ஆண்டுகள்">years</span></p>
                     </div>
                 </div>
             </div>
@@ -616,54 +769,63 @@
             <div style="margin-bottom:32px;">
                 <button class="call-btn" onclick="showCallPopup()"
                     style="width:100%;justify-content:center;padding:16px;font-size:1rem;border-radius:12px;">
-                    📞 <span class="t" data-en="Call Dr." data-hi="डॉक्टर को कॉल करें">Call Dr.</span> {{
-                    patient.doctor_name or 'Anil Sharma' }}
+                    📞 <span class="t" data-en="Call Dr." data-hi="डॉक्टर को कॉल करें" data-od="ଡାକ୍ତରଙ୍କୁ ଡାକ"
+                        data-bn="ডাক্তারকে ডাকুন" data-ta="மருத்துவரை அழை">Call Dr.</span> {{ patient.doctor_name or
+                    'Anil Sharma' }}
                 </button>
             </div>
         </div>
 
-        <!-- EASY MODE VIEW (hidden by default, shown in elderly mode) -->
+        <!-- EASY MODE VIEW -->
         <div id="easy-view" style="display:none;">
             <div style="text-align:center;margin-bottom:28px;margin-top:12px;">
                 <h2 style="font-family:'Syne',sans-serif;font-size:1.8rem;margin-bottom:6px;">
-                    <span class="t" data-en="Hello" data-hi="नमस्ते">Hello</span>, {{ patient.name }}! 👋
+                    <span class="t" data-en="Hello" data-hi="नमस्ते" data-od="ନମସ୍କାର" data-bn="নমস্কার"
+                        data-ta="வணக்கம்">Hello</span>, {{ patient.name }}! 👋
                 </h2>
                 <p style="color:var(--text-muted);" class="t" data-en="What would you like to see?"
-                    data-hi="आप क्या देखना चाहते हैं?">What would you like to see?</p>
+                    data-hi="आप क्या देखना चाहते हैं?" data-od="ଆପଣ କ'ଣ ଦେଖିବାକୁ ଚାହୁଁଛନ୍ତି?"
+                    data-bn="আপনি কী দেখতে চান?" data-ta="நீங்கள் என்ன பார்க்க விரும்புகிறீர்கள்?">What would you like
+                    to see?</p>
             </div>
 
-            <!-- 4 Big Buttons -->
             <div class="easy-menu-grid" id="easy-menu">
                 <button class="easy-menu-btn btn-medicines" onclick="showEasySection('medicines')">
                     <span class="easy-icon">💊</span>
-                    <span class="easy-label t" data-en="My Medicines" data-hi="मेरी दवाइयाँ">My Medicines</span>
+                    <span class="easy-label t" data-en="My Medicines" data-hi="मेरी दवाइयाँ" data-od="ମୋ ଔଷଧ"
+                        data-bn="আমার ওষুধ" data-ta="என் மருந்துகள்">My Medicines</span>
                 </button>
                 <button class="easy-menu-btn btn-vitals" onclick="showEasySection('vitals')">
                     <span class="easy-icon">📊</span>
-                    <span class="easy-label t" data-en="My Vitals" data-hi="मेरे आँकड़े">My Vitals</span>
+                    <span class="easy-label t" data-en="My Vitals" data-hi="मेरे आँकड़े" data-od="ମୋ ସ୍ୱାସ୍ଥ୍ୟ ତଥ୍ୟ"
+                        data-bn="আমার স্বাস্থ্য তথ্য" data-ta="என் உடல் நிலை">My Vitals</span>
                 </button>
                 <button class="easy-menu-btn btn-doctor" onclick="showEasySection('doctor')">
                     <span class="easy-icon">👨‍⚕️</span>
-                    <span class="easy-label t" data-en="My Doctor" data-hi="मेरे डॉक्टर">My Doctor</span>
+                    <span class="easy-label t" data-en="My Doctor" data-hi="मेरे डॉक्टर" data-od="ମୋ ଡାକ୍ତର"
+                        data-bn="আমার ডাক্তার" data-ta="என் மருத்துவர்">My Doctor</span>
                 </button>
                 <button class="easy-menu-btn btn-status" onclick="showEasySection('status')">
                     <span class="easy-icon">📋</span>
-                    <span class="easy-label t" data-en="My Status" data-hi="मेरी स्थिति">My Status</span>
+                    <span class="easy-label t" data-en="My Status" data-hi="मेरी स्थिति" data-od="ମୋ ସ୍ଥିତି"
+                        data-bn="আমার অবস্থা" data-ta="என் நிலை">My Status</span>
                 </button>
             </div>
 
-            <!-- Easy: Medicines Section -->
+            <!-- Easy: Medicines -->
             <div class="easy-section" id="easy-medicines">
-                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back"
-                        data-hi="वापस">Back</span></button>
+                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back" data-hi="वापस"
+                        data-od="ଫେରନ୍ତୁ" data-bn="ফিরুন" data-ta="திரும்பு">Back</span></button>
                 <div class="section-title" style="font-size:1.3rem;">💊 <span class="t" data-en="My Medicines"
-                        data-hi="मेरी दवाइयाँ">My Medicines</span></div>
+                        data-hi="मेरी दवाइयाँ" data-od="ମୋ ଔଷଧ" data-bn="আমার ওষুধ" data-ta="என் மருந்துகள்">My
+                        Medicines</span></div>
                 {% if patient.medicines %}
                 <div class="reminder-strip" style="margin-bottom:16px;">
                     <span style="font-size:1.3rem;">⏰</span>
                     <div style="flex:1;">
-                        <p style="font-weight:600;" class="t" data-en="Daily Reminder Times" data-hi="दवाई का समय">Daily
-                            Reminder Times</p>
+                        <p style="font-weight:600;" class="t" data-en="Daily Reminder Times" data-hi="दवाई का समय"
+                            data-od="ଦୈନିକ ସ୍ମୃତି ସମୟ" data-bn="দৈনিক স্মারক সময়" data-ta="தினசரி நினைவூட்டல் நேரம்">
+                            Daily Reminder Times</p>
                     </div>
                     <div class="reminder-times">
                         <span class="reminder-time">🌅 8:00 AM</span>
@@ -686,47 +848,58 @@
                 {% else %}
                 <div class="card" style="text-align:center;padding:32px;">
                     <p style="font-size:1.5rem;margin-bottom:10px;">⏳</p>
-                    <p class="t" data-en="No prescription yet. Please wait for the doctor."
-                        data-hi="अभी कोई नुस्खा नहीं। डॉक्टर का इंतज़ार करें।">No prescription yet. Please wait for the
-                        doctor.</p>
+                    <p class="t" data-en="No prescription yet." data-hi="अभी कोई नुस्खा नहीं।"
+                        data-od="ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ନୁସ୍ଖା ନାହିଁ।" data-bn="এখনও কোনো প্রেসক্রিপশন নেই।"
+                        data-ta="இன்னும் மருந்து சீட்டு இல்லை.">No prescription yet.</p>
                 </div>
                 {% endif %}
             </div>
 
-            <!-- Easy: Vitals Section -->
+            <!-- Easy: Vitals -->
             <div class="easy-section" id="easy-vitals">
-                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back"
-                        data-hi="वापस">Back</span></button>
+                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back" data-hi="वापस"
+                        data-od="ଫେରନ୍ତୁ" data-bn="ফিরুন" data-ta="திரும்பு">Back</span></button>
                 <div class="section-title" style="font-size:1.3rem;">📊 <span class="t" data-en="My Vitals"
-                        data-hi="मेरे आँकड़े">My Vitals</span></div>
+                        data-hi="मेरे आँकड़े" data-od="ମୋ ସ୍ୱାସ୍ଥ୍ୟ ତଥ୍ୟ" data-bn="আমার স্বাস্থ্য তথ্য"
+                        data-ta="என் உடல் நிலை">My Vitals</span></div>
                 <div style="display:flex;flex-direction:column;gap:12px;">
                     <div
                         style="background:var(--surface2);padding:18px 20px;border-radius:14px;border:1.5px solid var(--border);">
                         <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;" class="t"
-                            data-en="Blood Pressure" data-hi="ब्लड प्रेशर">Blood Pressure</p>
+                            data-en="Blood Pressure" data-hi="ब्लड प्रेशर" data-od="ରକ୍ତଚାପ" data-bn="রক্তচাপ"
+                            data-ta="இரத்த அழுத்தம்">Blood Pressure</p>
                         <p style="font-weight:700;font-size:1.8rem;">{{ patient.bp or 'N/A' }}</p>
                     </div>
                     <div
                         style="background:var(--surface2);padding:18px 20px;border-radius:14px;border:1.5px solid var(--border);">
                         <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;" class="t"
-                            data-en="Oxygen Level" data-hi="ऑक्सीजन स्तर">Oxygen Level</p>
+                            data-en="Oxygen Level" data-hi="ऑक्सीजन स्तर" data-od="ଅମ୍ଳଜାନ ସ୍ତର"
+                            data-bn="অক্সিজেন মাত্রা" data-ta="ஆக்சிஜன் அளவு">Oxygen Level</p>
                         <p style="font-weight:700;font-size:1.8rem;">{{ patient.oxygen or 'N/A' }}%</p>
                     </div>
                     <div
                         style="background:var(--surface2);padding:18px 20px;border-radius:14px;border:1.5px solid var(--border);">
                         <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;" class="t"
-                            data-en="Blood Sugar" data-hi="ब्लड शुगर">Blood Sugar</p>
+                            data-en="Blood Sugar" data-hi="ब्लड शुगर" data-od="ରକ୍ତ ଶର୍କରା" data-bn="রক্তে শর্করা"
+                            data-ta="இரத்த சர்க்கரை">Blood Sugar</p>
                         <p style="font-weight:700;font-size:1.8rem;">{{ patient.sugar or 'N/A' }} mg/dL</p>
                     </div>
                 </div>
+                <button class="btn btn-primary" style="width:100%;margin-top:16px;padding:14px;"
+                    onclick="openVitalsModal('bp', {{ patient.id }})">
+                    📈 <span class="t" data-en="View Full History" data-hi="पूरा इतिहास देखें"
+                        data-od="ସମ୍ପୂର୍ଣ ଇତିହାସ ଦେଖ" data-bn="সম্পূর্ণ ইতিহাস দেখুন" data-ta="முழு வரலாறு பார்க்க">View
+                        Full History</span>
+                </button>
             </div>
 
-            <!-- Easy: Doctor Section -->
+            <!-- Easy: Doctor -->
             <div class="easy-section" id="easy-doctor">
-                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back"
-                        data-hi="वापस">Back</span></button>
+                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back" data-hi="वापस"
+                        data-od="ଫେରନ୍ତୁ" data-bn="ফিরুন" data-ta="திரும்பு">Back</span></button>
                 <div class="section-title" style="font-size:1.3rem;">👨‍⚕️ <span class="t" data-en="My Doctor"
-                        data-hi="मेरे डॉक्टर">My Doctor</span></div>
+                        data-hi="मेरे डॉक्टर" data-od="ମୋ ଡାକ୍ତର" data-bn="আমার ডাক্তার" data-ta="என் மருத்துவர்">My
+                        Doctor</span></div>
                 <div class="card" style="padding:28px;margin-bottom:16px;">
                     <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
                         <div
@@ -741,27 +914,27 @@
                     </div>
                     <div style="border-top:1px solid var(--border);padding-top:16px;">
                         <p style="color:var(--text-muted);margin-bottom:6px;">🏥 City Medical Center</p>
-                        <p style="color:var(--text-muted);margin-bottom:6px;">📍 {{ patient.doctor_room or 'Room 204' }}
-                        </p>
-                        <p style="color:var(--text-muted);">⏰ Mon–Sat, 9AM–6PM</p>
+                        <p style="color:var(--text-muted);">📍 {{ patient.doctor_room or 'Room 204' }}</p>
                     </div>
                 </div>
                 <button class="call-btn" onclick="showCallPopup()"
                     style="width:100%;justify-content:center;padding:20px;font-size:1.1rem;border-radius:14px;">
-                    📞 <span class="t" data-en="Call My Doctor" data-hi="डॉक्टर को कॉल करें">Call My Doctor</span>
+                    📞 <span class="t" data-en="Call My Doctor" data-hi="डॉक्टर को कॉल करें" data-od="ଡାକ୍ତରଙ୍କୁ ଡାକ"
+                        data-bn="ডাক্তারকে ডাকুন" data-ta="மருத்துவரை அழை">Call My Doctor</span>
                 </button>
             </div>
 
-            <!-- Easy: Status Section -->
+            <!-- Easy: Status -->
             <div class="easy-section" id="easy-status">
-                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back"
-                        data-hi="वापस">Back</span></button>
+                <button class="easy-back-btn" onclick="showEasyMenu()">← <span class="t" data-en="Back" data-hi="वापस"
+                        data-od="ଫେରନ୍ତୁ" data-bn="ফিরুন" data-ta="திரும்பு">Back</span></button>
                 <div class="section-title" style="font-size:1.3rem;">📋 <span class="t" data-en="My Status"
-                        data-hi="मेरी स्थिति">My Status</span></div>
+                        data-hi="मेरी स्थिति" data-od="ମୋ ସ୍ଥିତି" data-bn="আমার অবস্থা" data-ta="என் நிலை">My
+                        Status</span></div>
                 <div class="card" style="padding:28px;margin-bottom:14px;">
-                    <p style="color:var(--text-muted);margin-bottom:12px;" class="t"
-                        data-en="Your current severity level:" data-hi="आपकी मौजूदा तकलीफ:">Your current severity level:
-                    </p>
+                    <p style="color:var(--text-muted);margin-bottom:12px;" class="t" data-en="Your current severity:"
+                        data-hi="आपकी मौजूदा तकलीफ:" data-od="ଆପଣଙ୍କ ବର୍ତ୍ତମାନ ଗୁରୁତ୍ୱ:"
+                        data-bn="আপনার বর্তমান তীব্রতা:" data-ta="உங்கள் தற்போதைய தீவிரம்:">Your current severity:</p>
                     <span class="badge badge-{{ patient.severity | lower }}"
                         style="font-size:1.2rem;padding:12px 24px;">
                         {% if patient.severity == 'Critical' %}🔴 Critical
@@ -774,10 +947,17 @@
                         patient.progression_warning }}</div>
                     {% endif %}
                 </div>
+                {% if patient.known_conditions %}
+                <div class="med-bg-info" style="font-size:1rem;">
+                    <div class="med-bg-label">⚠️ Known Conditions / Allergies</div>
+                    <div class="med-bg-value" style="font-size:1rem;">{{ patient.known_conditions }}</div>
+                </div>
+                {% endif %}
                 {% if patient.follow_up %}
                 <div class="card" style="padding:20px;">
                     <p style="color:var(--text-muted);margin-bottom:6px;" class="t" data-en="Next appointment:"
-                        data-hi="अगली मुलाकात:">Next appointment:</p>
+                        data-hi="अगली मुलाकात:" data-od="ଅଗ୍ରଣୀ ନିଯୁକ୍ତି:" data-bn="পরবর্তী অ্যাপয়েন্টমেন্ট:"
+                        data-ta="அடுத்த சந்திப்பு:">Next appointment:</p>
                     <p style="font-weight:700;font-size:1.3rem;">📅 {{ patient.follow_up }}</p>
                 </div>
                 {% endif %}
@@ -787,18 +967,73 @@
         {% endif %}
     </div>
 
+    <!-- VITALS HISTORY MODAL -->
+    <div class="vitals-modal-overlay" id="vitals-modal" onclick="closeVitalsModal(event)">
+        <div class="vitals-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <p style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;" id="vitals-modal-title">
+                    Vitals History</p>
+                <button class="btn btn-outline"
+                    onclick="document.getElementById('vitals-modal').classList.remove('active')">✕</button>
+            </div>
+
+            <!-- Vital Type Tabs -->
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
+                <button class="btn btn-primary" id="vtab-bp" onclick="switchVitalTab('bp')">🩸 BP</button>
+                <button class="btn btn-outline" id="vtab-oxygen" onclick="switchVitalTab('oxygen')">💨 O₂</button>
+                <button class="btn btn-outline" id="vtab-sugar" onclick="switchVitalTab('sugar')">🍬 Sugar</button>
+            </div>
+
+            <!-- Add New Record -->
+            <div class="add-vital-form">
+                <p style="font-weight:700;font-size:0.9rem;margin-bottom:12px;">➕ Add New Reading</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                    <div style="flex:1;min-width:100px;">
+                        <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">BP
+                            (mmHg)</label>
+                        <input type="text" id="new-bp" placeholder="e.g. 120/80"
+                            style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                    </div>
+                    <div style="flex:1;min-width:80px;">
+                        <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">O₂
+                            (%)</label>
+                        <input type="number" id="new-oxygen" placeholder="e.g. 98"
+                            style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                    </div>
+                    <div style="flex:1;min-width:80px;">
+                        <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">Sugar
+                            (mg/dL)</label>
+                        <input type="number" id="new-sugar" placeholder="e.g. 110"
+                            style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                    </div>
+                    <button class="btn btn-primary" onclick="submitNewVital()" style="padding:8px 14px;">Save</button>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div style="margin-bottom:16px;position:relative;height:180px;">
+                <canvas id="vitals-chart"></canvas>
+            </div>
+
+            <!-- History List -->
+            <div id="vitals-history-list" style="max-height:200px;overflow-y:auto;"></div>
+        </div>
+    </div>
+
     <!-- CALL POPUP -->
     <div class="call-popup" id="call-popup" style="display:none;" onclick="hideCallPopup()">
         <div class="call-popup-inner" onclick="event.stopPropagation()">
             <div class="call-pulse">📞</div>
             <p style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;margin-bottom:8px;" class="t"
-                data-en="Calling Doctor..." data-hi="डॉक्टर को कॉल हो रही है...">Calling Doctor...</p>
-            <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;">{{ "Dr. " + (patient.doctor_name or
-                "Anil Sharma") if patient is defined else "Dr. Anil Sharma" }}</p>
+                data-en="Calling Doctor..." data-hi="डॉक्टर को कॉल हो रही है..." data-od="ଡାକ୍ତରଙ୍କୁ କଲ ହେଉଛି..."
+                data-bn="ডাক্তারকে কল করা হচ্ছে..." data-ta="மருத்துவரை அழைக்கிறது...">Calling Doctor...</p>
+            <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:6px;">{{ patient.doctor_name if patient is
+                defined else 'Dr. Anil Sharma' }}</p>
             <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:28px;">+91 98100 11111</p>
             <button onclick="hideCallPopup()"
                 style="background:var(--critical);color:#fff;border:none;padding:12px 32px;border-radius:30px;font-weight:700;font-size:1rem;cursor:pointer;font-family:'DM Sans',sans-serif;">
-                ✕ <span class="t" data-en="End Call" data-hi="कॉल समाप्त करें">End Call</span>
+                ✕ <span class="t" data-en="End Call" data-hi="कॉल समाप्त करें" data-od="କଲ ଶେଷ କରନ୍ତୁ"
+                    data-bn="কল শেষ করুন" data-ta="அழைப்பை முடி">End Call</span>
             </button>
         </div>
     </div>
@@ -815,18 +1050,21 @@
 
         // Language
         let currentLang = localStorage.getItem('lang') || 'en';
+        const langSelect = document.getElementById('lang-select');
+        if (langSelect) langSelect.value = currentLang;
         applyLang(currentLang);
-        function toggleLang() {
-            currentLang = currentLang === 'en' ? 'hi' : 'en';
-            localStorage.setItem('lang', currentLang);
-            applyLang(currentLang);
+
+        function changeLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('lang', lang);
+            applyLang(lang);
         }
+
         function applyLang(lang) {
             document.querySelectorAll('.t').forEach(el => {
                 const val = el.getAttribute('data-' + lang);
                 if (val) el.textContent = val;
             });
-            document.getElementById('lang-btn').textContent = lang === 'en' ? '🌐 हिंदी' : '🌐 English';
             const h = document.getElementById('hidden-lang');
             if (h) h.value = lang;
         }
@@ -842,26 +1080,20 @@
         document.getElementById('elderly-btn').textContent = document.body.classList.contains('elderly-mode') ? '👓 Normal Mode' : '👴 Easy Mode';
 
         function switchView(isElderly) {
-            const normalView = document.getElementById('normal-view');
-            const easyView = document.getElementById('easy-view');
-            if (!normalView || !easyView) return;
-            if (isElderly) {
-                normalView.style.display = 'none';
-                easyView.style.display = 'block';
-            } else {
-                normalView.style.display = 'block';
-                easyView.style.display = 'none';
-            }
+            const nv = document.getElementById('normal-view');
+            const ev = document.getElementById('easy-view');
+            if (!nv || !ev) return;
+            nv.style.display = isElderly ? 'none' : 'block';
+            ev.style.display = isElderly ? 'block' : 'none';
         }
-        // Apply on load
         switchView(document.body.classList.contains('elderly-mode'));
 
-        // Easy Mode Navigation
+        // Easy Mode navigation
         function showEasySection(section) {
             document.getElementById('easy-menu').style.display = 'none';
             document.querySelectorAll('.easy-section').forEach(s => s.classList.remove('active'));
-            const target = document.getElementById('easy-' + section);
-            if (target) target.classList.add('active');
+            const t = document.getElementById('easy-' + section);
+            if (t) t.classList.add('active');
         }
         function showEasyMenu() {
             document.getElementById('easy-menu').style.display = 'grid';
@@ -869,14 +1101,10 @@
         }
 
         // Call Popup
-        function showCallPopup() {
-            document.getElementById('call-popup').style.display = 'flex';
-        }
-        function hideCallPopup() {
-            document.getElementById('call-popup').style.display = 'none';
-        }
+        function showCallPopup() { document.getElementById('call-popup').style.display = 'flex'; }
+        function hideCallPopup() { document.getElementById('call-popup').style.display = 'none'; }
 
-        // Medicine Checkbox (normal mode)
+        // Medicine Checkbox
         const checkedMeds = JSON.parse(localStorage.getItem('checkedMeds') || '{}');
         function toggleMed(idx) {
             const item = document.getElementById('med-' + idx);
@@ -887,8 +1115,6 @@
             checkedMeds[idx] = isChecked;
             localStorage.setItem('checkedMeds', JSON.stringify(checkedMeds));
         }
-
-        // Medicine Checkbox (easy mode)
         function toggleEasyMed(idx) {
             const item = document.getElementById('easymed-' + idx);
             const check = document.getElementById('easycheck-' + idx);
@@ -898,8 +1124,6 @@
             checkedMeds['e' + idx] = isChecked;
             localStorage.setItem('checkedMeds', JSON.stringify(checkedMeds));
         }
-
-        // Restore checked
         Object.keys(checkedMeds).forEach(idx => {
             if (checkedMeds[idx]) {
                 const prefix = idx.startsWith('e') ? 'easy' : '';
@@ -909,6 +1133,121 @@
                 if (item && check) { item.classList.add('checked'); check.classList.add('checked'); }
             }
         });
+
+        // Vitals History Modal
+        let currentVitalType = 'bp';
+        let currentPatientId = null;
+        let allVitalsData = [];
+        let vitalsChart = null;
+
+        async function openVitalsModal(vitalType, patientId) {
+            currentVitalType = vitalType;
+            currentPatientId = patientId;
+            document.getElementById('vitals-modal').classList.add('active');
+            const res = await fetch('/api/vitals_history/' + patientId);
+            allVitalsData = await res.json();
+            switchVitalTab(vitalType);
+        }
+
+        function closeVitalsModal(e) {
+            if (e.target.id === 'vitals-modal') document.getElementById('vitals-modal').classList.remove('active');
+        }
+
+        function switchVitalTab(vitalType) {
+            currentVitalType = vitalType;
+            ['bp', 'oxygen', 'sugar'].forEach(t => {
+                document.getElementById('vtab-' + t).className = t === vitalType ? 'btn btn-primary' : 'btn btn-outline';
+            });
+            const titles = { bp: '🩸 Blood Pressure History', oxygen: '💨 Oxygen Level History', sugar: '🍬 Blood Sugar History' };
+            document.getElementById('vitals-modal-title').textContent = titles[vitalType];
+            renderVitalsChart(vitalType);
+            renderVitalsList(vitalType);
+        }
+
+        function renderVitalsChart(vitalType) {
+            const filtered = allVitalsData.filter(r => r[vitalType] !== null && r[vitalType] !== undefined && r[vitalType] !== '');
+            const labels = filtered.map(r => {
+                const d = new Date(r.timestamp);
+                return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            });
+            let values = filtered.map(r => {
+                if (vitalType === 'bp') {
+                    const parts = (r.bp || '').split('/');
+                    return parts.length > 0 ? parseInt(parts[0]) : null;
+                }
+                return parseFloat(r[vitalType]);
+            }).filter(v => !isNaN(v));
+
+            const ctx = document.getElementById('vitals-chart').getContext('2d');
+            if (vitalsChart) vitalsChart.destroy();
+
+            const colors = { bp: '#3b82f6', oxygen: '#22c55e', sugar: '#f97316' };
+            const isDark = !document.body.classList.contains('light');
+
+            vitalsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['No data'],
+                    datasets: [{
+                        label: vitalType === 'bp' ? 'Systolic BP' : vitalType === 'oxygen' ? 'O₂ %' : 'Sugar mg/dL',
+                        data: values.length > 0 ? values : [0],
+                        borderColor: colors[vitalType],
+                        backgroundColor: colors[vitalType] + '22',
+                        fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: isDark ? '#64748b' : '#64748b', font: { size: 10 } }, grid: { color: isDark ? '#1e2d45' : '#e2e8f0' } },
+                        y: { ticks: { color: isDark ? '#64748b' : '#64748b', font: { size: 10 } }, grid: { color: isDark ? '#1e2d45' : '#e2e8f0' } }
+                    }
+                }
+            });
+        }
+
+        function renderVitalsList(vitalType) {
+            const filtered = allVitalsData.filter(r => r[vitalType] !== null && r[vitalType] !== undefined && r[vitalType] !== '').reverse();
+            const units = { bp: 'mmHg', oxygen: '%', sugar: 'mg/dL' };
+            const list = document.getElementById('vitals-history-list');
+            if (filtered.length === 0) {
+                list.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:12px;">No records yet. Add your first reading above!</p>';
+                return;
+            }
+            list.innerHTML = filtered.map(r => {
+                const d = new Date(r.timestamp);
+                const dateStr = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' · ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                const val = r[vitalType];
+                const unit = vitalType === 'bp' ? 'mmHg' : units[vitalType];
+                return `<div class="vital-history-item">
+                    <div>
+                        <p style="font-weight:700;font-size:1rem;">${val} <span style="font-size:0.78rem;color:var(--text-muted);">${unit}</span></p>
+                        <p style="font-size:0.75rem;color:var(--text-muted);">${dateStr}</p>
+                    </div>
+                    <span style="font-size:0.72rem;padding:2px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);">👤 ${r.recorded_by}</span>
+                </div>`;
+            }).join('');
+        }
+
+        async function submitNewVital() {
+            const bp = document.getElementById('new-bp').value.trim();
+            const oxygen = document.getElementById('new-oxygen').value.trim();
+            const sugar = document.getElementById('new-sugar').value.trim();
+            if (!bp && !oxygen && !sugar) { alert('Please enter at least one value!'); return; }
+            const res = await fetch('/api/add_vital', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ patient_id: currentPatientId, bp: bp || null, oxygen: oxygen || null, sugar: sugar || null, recorded_by: 'Patient' })
+            });
+            if ((await res.json()).success) {
+                document.getElementById('new-bp').value = '';
+                document.getElementById('new-oxygen').value = '';
+                document.getElementById('new-sugar').value = '';
+                const res2 = await fetch('/api/vitals_history/' + currentPatientId);
+                allVitalsData = await res2.json();
+                switchVitalTab(currentVitalType);
+            }
+        }
     </script>
 </body>
 

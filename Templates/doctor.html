@@ -43,10 +43,6 @@
             background: none !important;
         }
 
-        .patient-card.seen-card:hover {
-            opacity: 0.8;
-        }
-
         .mark-seen-btn {
             background: transparent;
             border: 1.5px solid var(--border);
@@ -65,12 +61,6 @@
         .mark-seen-btn:hover {
             border-color: var(--mild);
             color: var(--mild);
-        }
-
-        .mark-seen-btn.done {
-            border-color: var(--mild);
-            color: var(--mild);
-            background: rgba(34, 197, 94, 0.08);
         }
 
         .doctor-select-preview {
@@ -96,6 +86,28 @@
             font-size: 0.78rem;
             color: var(--text-muted);
         }
+
+        .med-bg-section {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+
+        .med-bg-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .med-bg-value {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
     </style>
 </head>
 
@@ -115,13 +127,13 @@
     </nav>
 
     <div class="container">
-
-        <!-- Banner -->
         <div class="dashboard-banner">
             <div class="banner-content">
                 <h1>Doctor Dashboard</h1>
                 <p>AI-prioritized patient queue — most critical shown first</p>
                 <div class="banner-meta">
+                    <span>🤖 Powered by Claude AI</span>
+                    <span>🏥 Live Triage</span>
                     <span id="banner-time"></span>
                     <span id="banner-date"></span>
                 </div>
@@ -137,43 +149,39 @@
             </div>
             <div class="stat-card stat-critical">
                 <div class="stat-icon">🔴</div>
-                <div class="stat-number">{{ stats.critical }}</div>
+                <div class="stat-number" id="stat-critical">{{ stats.critical }}</div>
                 <div class="stat-label">Critical</div>
             </div>
             <div class="stat-card stat-orange">
                 <div class="stat-icon">🟠</div>
-                <div class="stat-number">{{ stats.orange }}</div>
+                <div class="stat-number" id="stat-orange">{{ stats.orange }}</div>
                 <div class="stat-label">Critical if Untreated</div>
             </div>
             <div class="stat-card stat-moderate">
                 <div class="stat-icon">🟡</div>
-                <div class="stat-number">{{ stats.moderate }}</div>
+                <div class="stat-number" id="stat-moderate">{{ stats.moderate }}</div>
                 <div class="stat-label">Moderate</div>
             </div>
             <div class="stat-card stat-mild">
                 <div class="stat-icon">🟢</div>
-                <div class="stat-number">{{ stats.mild }}</div>
+                <div class="stat-number" id="stat-mild">{{ stats.mild }}</div>
                 <div class="stat-label">Mild</div>
             </div>
         </div>
 
-        <!-- Queue Header -->
         <div class="queue-header">
             <h2>Patient Queue</h2>
             <span style="font-size:0.8rem;color:var(--text-muted);">Click any patient to view details &amp;
                 prescribe</span>
         </div>
 
-        <!-- Patient Queue -->
         <div class="patient-queue" id="active-queue">
             {% if patients %}
             {% for p in patients %}
             <div class="patient-card {{ p.severity | lower }}" id="pcard-{{ p.id }}"
-                data-patient='{{ p | tojson | safe }}'>
+                data-patient='{{ p | tojson | safe }}' data-severity="{{ p.severity | lower }}">
                 <div class="patient-avatar avatar-{{ p.severity | lower }}"
-                    onclick="openPatient(document.getElementById('pcard-{{ p.id }}'))">
-                    {{ p.name[0] | upper }}
-                </div>
+                    onclick="openPatient(document.getElementById('pcard-{{ p.id }}'))">{{ p.name[0] | upper }}</div>
                 <div style="flex:1;" onclick="openPatient(document.getElementById('pcard-{{ p.id }}'))">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;flex-wrap:wrap;">
                         <span class="patient-name">{{ p.name }}</span>
@@ -191,8 +199,12 @@
                     <div class="patient-meta">Age {{ p.age }} · {{ p.gender }} · 📞 {{ p.phone }}</div>
                     <div class="patient-meta" style="margin-top:4px;">{{ p.symptoms[:90] }}{% if p.symptoms|length > 90
                         %}...{% endif %}</div>
+                    {% if p.known_conditions %}
+                    <div style="font-size:0.76rem;color:var(--text-muted);margin-top:4px;">⚠️ {{ p.known_conditions[:60]
+                        }}{% if p.known_conditions|length > 60 %}...{% endif %}</div>
+                    {% endif %}
                     {% if p.progression_warning %}
-                    <div style="font-size:0.78rem;color:var(--orange);margin-top:6px;">⚠️ {{ p.progression_warning }}
+                    <div style="font-size:0.78rem;color:var(--orange);margin-top:4px;">🔺 {{ p.progression_warning }}
                     </div>
                     {% endif %}
                 </div>
@@ -212,22 +224,23 @@
                     {% endfor %}
                     {% endif %}
                 </div>
-                <button class="mark-seen-btn" onclick="markSeen({{ p.id }})">✓ Mark Seen</button>
+                <button class="mark-seen-btn" onclick="markSeen({{ p.id }}, '{{ p.severity | lower }}')">✓ Mark
+                    Seen</button>
             </div>
             {% endfor %}
             {% else %}
-            <div class="card" style="text-align:center;padding:60px 40px;" id="empty-state">
+            <div class="card" style="text-align:center;padding:60px 40px;">
                 <div style="font-size:3.5rem;margin-bottom:16px;">🏥</div>
                 <p style="font-size:1.2rem;font-weight:700;margin-bottom:8px;">No patients in queue</p>
                 <p style="color:var(--text-muted);margin-bottom:24px;font-size:0.9rem;">Add a patient to begin AI triage
                     analysis</p>
-                <button class="btn btn-primary" style="padding:12px 28px;font-size:0.95rem;"
-                    onclick="openAddPatient()">+ Add First Patient</button>
+                <button class="btn btn-primary" style="padding:12px 28px;" onclick="openAddPatient()">+ Add First
+                    Patient</button>
             </div>
             {% endif %}
         </div>
 
-        <!-- Seen Today Section -->
+        <!-- Seen Today -->
         <div class="seen-section" id="seen-section" style="display:none;">
             <div class="seen-header" onclick="toggleSeenList()">
                 <h2>✅ Seen Today</h2>
@@ -236,12 +249,11 @@
             </div>
             <div id="seen-list" style="display:none;"></div>
         </div>
-
     </div>
 
     <!-- ADD PATIENT MODAL -->
     <div class="modal-overlay" id="add-patient-modal" onclick="closeAddModal(event)">
-        <div class="modal" style="max-width:680px;">
+        <div class="modal" style="max-width:700px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                 <p class="modal-title">🧑‍💼 Add New Patient</p>
                 <button class="btn btn-outline"
@@ -249,19 +261,13 @@
             </div>
             <div id="add-patient-form">
                 <div class="grid-2">
-                    <div class="form-group">
-                        <label>Patient Full Name *</label>
-                        <input type="text" id="ap-name" placeholder="e.g. Ramesh Kumar">
-                    </div>
-                    <div class="form-group">
-                        <label>Phone Number *</label>
-                        <input type="tel" id="ap-phone" placeholder="e.g. 9876543210">
-                    </div>
+                    <div class="form-group"><label>Patient Full Name *</label><input type="text" id="ap-name"
+                            placeholder="e.g. Ramesh Kumar"></div>
+                    <div class="form-group"><label>Phone Number *</label><input type="tel" id="ap-phone"
+                            placeholder="e.g. 9876543210"></div>
                 </div>
                 <div class="grid-2">
-                    <div class="form-group">
-                        <label>Age *</label>
-                        <input type="number" id="ap-age" placeholder="e.g. 45">
+                    <div class="form-group"><label>Age *</label><input type="number" id="ap-age" placeholder="e.g. 45">
                     </div>
                     <div class="form-group">
                         <label>Gender *</label>
@@ -273,10 +279,21 @@
                         </select>
                     </div>
                 </div>
+                <div class="form-group"><label>Symptoms *</label><textarea id="ap-symptoms" rows="3"
+                        placeholder="e.g. High fever for 3 days, severe headache..."></textarea></div>
+
+                <!-- NEW: Current Medications -->
                 <div class="form-group">
-                    <label>Symptoms *</label>
-                    <textarea id="ap-symptoms" rows="3"
-                        placeholder="e.g. High fever for 3 days, severe headache, joint pain..."></textarea>
+                    <label>💊 Current Medications</label>
+                    <textarea id="ap-current-medications" rows="2"
+                        placeholder="e.g. Insulin 10 units, Aspirin 75mg daily, Metformin 500mg..."></textarea>
+                </div>
+
+                <!-- NEW: Known Conditions -->
+                <div class="form-group">
+                    <label>⚠️ Known Conditions / Allergies</label>
+                    <textarea id="ap-known-conditions" rows="2"
+                        placeholder="e.g. Type 2 Diabetes, Hypertension, Penicillin allergy, Cardiac issues..."></textarea>
                 </div>
 
                 <!-- Assign Doctor -->
@@ -301,19 +318,13 @@
                     style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">
                     📊 Vitals (optional)</p>
                 <div class="grid-2">
-                    <div class="form-group">
-                        <label>Blood Pressure (mmHg)</label>
-                        <input type="text" id="ap-bp" placeholder="e.g. 120/80">
-                    </div>
-                    <div class="form-group">
-                        <label>Oxygen Level (%)</label>
-                        <input type="number" id="ap-oxygen" placeholder="e.g. 98">
-                    </div>
+                    <div class="form-group"><label>Blood Pressure (mmHg)</label><input type="text" id="ap-bp"
+                            placeholder="e.g. 120/80"></div>
+                    <div class="form-group"><label>Oxygen Level (%)</label><input type="number" id="ap-oxygen"
+                            placeholder="e.g. 98"></div>
                 </div>
-                <div class="form-group">
-                    <label>Blood Sugar (mg/dL)</label>
-                    <input type="number" id="ap-sugar" placeholder="e.g. 110">
-                </div>
+                <div class="form-group"><label>Blood Sugar (mg/dL)</label><input type="number" id="ap-sugar"
+                        placeholder="e.g. 110"></div>
                 <button class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem;" id="ap-submit-btn"
                     onclick="submitNewPatient()">
                     🔍 Analyze &amp; Add Patient
@@ -352,9 +363,10 @@
                 <button class="btn btn-outline" onclick="showTab('prescribe')" id="tab-prescribe">💊 Prescribe</button>
                 <button class="btn btn-outline" onclick="showTab('notes')" id="tab-notes">📝 Notes</button>
             </div>
+
             <!-- Assigned Doctor Banner -->
             <div id="modal-doctor-banner"
-                style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:16px;align-items:center;gap:10px;">
                 <span style="font-size:1.2rem;">👨‍⚕️</span>
                 <div>
                     <p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;">
@@ -362,6 +374,7 @@
                     <p id="modal-doctor-name" style="font-weight:700;font-size:0.9rem;"></p>
                 </div>
             </div>
+
             <!-- Info Tab -->
             <div id="tab-info-content">
                 <div class="grid-2" style="margin-bottom:16px;">
@@ -394,6 +407,19 @@
                         <p id="m-severity" style="font-weight:700;font-size:1.1rem;"></p>
                     </div>
                 </div>
+
+                <!-- Current Medications -->
+                <div class="med-bg-section" id="m-current-meds-wrap">
+                    <div class="med-bg-label">💊 Current Medications</div>
+                    <div class="med-bg-value" id="m-current-meds"></div>
+                </div>
+
+                <!-- Known Conditions -->
+                <div class="med-bg-section" id="m-known-conditions-wrap">
+                    <div class="med-bg-label">⚠️ Known Conditions / Allergies</div>
+                    <div class="med-bg-value" id="m-known-conditions"></div>
+                </div>
+
                 <div
                     style="background:var(--surface2);padding:14px 16px;border-radius:10px;border:1px solid var(--border);margin-bottom:14px;">
                     <p
@@ -409,6 +435,7 @@
                 </div>
                 <div id="m-warning"></div>
             </div>
+
             <!-- Prescribe Tab -->
             <div id="tab-prescribe-content" style="display:none;">
                 <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">Add medicines to the
@@ -442,6 +469,7 @@
                 <button class="btn btn-primary" style="width:100%;padding:12px;" onclick="submitPrescription()">✅ Submit
                     Prescription</button>
             </div>
+
             <!-- Notes Tab -->
             <div id="tab-notes-content" style="display:none;">
                 <div id="notes-list" style="margin-bottom:16px;max-height:200px;overflow-y:auto;"></div>
@@ -455,16 +483,14 @@
     </div>
 
     <script>
-        // Doctor data
         const DOCTORS = {
-            dr_anil: { name: 'Dr. Anil Sharma', spec: 'MBBS, MD — General Physician', room: '📍 Room 204 · City Medical Center · Mon–Sat 9AM–6PM', phone: '+91 98100 11111' },
-            dr_priya: { name: 'Dr. Priya Mehra', spec: 'MD, DM — Cardiologist', room: '📍 Room 301 · City Medical Center · Mon–Fri 10AM–5PM', phone: '+91 98100 22222' },
-            dr_rajan: { name: 'Dr. Rajan Verma', spec: 'MBBS, MD — Pulmonologist', room: '📍 Room 108 · City Medical Center · Tue–Sat 9AM–4PM', phone: '+91 98100 33333' },
-            dr_sunita: { name: 'Dr. Sunita Rao', spec: 'MBBS, MD — Diabetologist', room: '📍 Room 212 · City Medical Center · Mon–Sat 8AM–3PM', phone: '+91 98100 44444' },
-            dr_karan: { name: 'Dr. Karan Malhotra', spec: 'MBBS, DNB — Emergency Medicine', room: '📍 Emergency Wing · City Medical Center · 24/7', phone: '+91 98100 55555' },
+            dr_anil: { name: 'Dr. Anil Sharma', spec: 'MBBS, MD — General Physician', room: '📍 Room 204 · Mon–Sat 9AM–6PM' },
+            dr_priya: { name: 'Dr. Priya Mehra', spec: 'MD, DM — Cardiologist', room: '📍 Room 301 · Mon–Fri 10AM–5PM' },
+            dr_rajan: { name: 'Dr. Rajan Verma', spec: 'MBBS, MD — Pulmonologist', room: '📍 Room 108 · Tue–Sat 9AM–4PM' },
+            dr_sunita: { name: 'Dr. Sunita Rao', spec: 'MBBS, MD — Diabetologist', room: '📍 Room 212 · Mon–Sat 8AM–3PM' },
+            dr_karan: { name: 'Dr. Karan Malhotra', spec: 'MBBS, DNB — Emergency Medicine', room: '📍 Emergency Wing · 24/7' },
         };
 
-        // Theme
         function toggleTheme() {
             document.body.classList.toggle('light');
             const isLight = document.body.classList.contains('light');
@@ -473,17 +499,15 @@
         }
         document.getElementById('theme-btn').textContent = document.body.classList.contains('light') ? '🌙 Dark' : '☀️ Light';
 
-        // Live time + date
         function updateTime() {
             const now = new Date();
-            const timeEl = document.getElementById('banner-time');
-            const dateEl = document.getElementById('banner-date');
-            if (timeEl) timeEl.textContent = '🕐 ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-            if (dateEl) dateEl.textContent = '📅 ' + now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+            const te = document.getElementById('banner-time');
+            const de = document.getElementById('banner-date');
+            if (te) te.textContent = '🕐 ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            if (de) de.textContent = '📅 ' + now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
         }
         updateTime(); setInterval(updateTime, 60000);
 
-        // Doctor preview
         function updateDoctorPreview() {
             const val = document.getElementById('ap-doctor').value;
             const preview = document.getElementById('doctor-preview');
@@ -498,7 +522,6 @@
             }
         }
 
-        // ADD PATIENT
         function openAddPatient() { document.getElementById('add-patient-modal').classList.add('active'); }
         function closeAddModal(e) { if (e.target.id === 'add-patient-modal') document.getElementById('add-patient-modal').classList.remove('active'); }
 
@@ -510,7 +533,7 @@
             const symptoms = document.getElementById('ap-symptoms').value.trim();
             const doctorKey = document.getElementById('ap-doctor').value;
             if (!name || !phone || !age || !gender || !symptoms || !doctorKey) {
-                alert('Please fill in all required fields including the assigned doctor!'); return;
+                alert('Please fill in all required fields including assigned doctor!'); return;
             }
             const btn = document.getElementById('ap-submit-btn');
             btn.textContent = '⏳ Analyzing with AI...'; btn.disabled = true;
@@ -521,6 +544,8 @@
                         name, phone, age: parseInt(age), gender, symptoms,
                         doctor_key: doctorKey,
                         doctor_name: DOCTORS[doctorKey]?.name || '',
+                        current_medications: document.getElementById('ap-current-medications').value.trim(),
+                        known_conditions: document.getElementById('ap-known-conditions').value.trim(),
                         bp: document.getElementById('ap-bp').value || 'Not measured',
                         oxygen: document.getElementById('ap-oxygen').value || 'Not measured',
                         sugar: document.getElementById('ap-sugar').value || 'Not measured'
@@ -545,9 +570,7 @@
             let html = '';
             analysis.diseases.forEach(d => {
                 html += `<div style="margin-bottom:12px;">
-                    <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:4px;">
-                        <span>${d.name}</span><span style="color:var(--accent);font-weight:700;">${d.likelihood}%</span>
-                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:4px;"><span>${d.name}</span><span style="color:var(--accent);font-weight:700;">${d.likelihood}%</span></div>
                     <div class="disease-bar"><div class="disease-fill" style="width:${d.likelihood}%"></div></div>
                 </div>`;
             });
@@ -558,22 +581,28 @@
         }
 
         function resetAddForm() {
-            ['ap-name', 'ap-phone', 'ap-age', 'ap-symptoms', 'ap-bp', 'ap-oxygen', 'ap-sugar'].forEach(id => document.getElementById(id).value = '');
+            ['ap-name', 'ap-phone', 'ap-age', 'ap-symptoms', 'ap-bp', 'ap-oxygen', 'ap-sugar', 'ap-current-medications', 'ap-known-conditions'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('ap-gender').value = '';
             document.getElementById('ap-doctor').value = '';
             document.getElementById('doctor-preview').classList.remove('visible');
             document.getElementById('ap-result').style.display = 'none';
         }
 
-        // MARK AS SEEN
-        let seenPatients = [];
-        let seenListVisible = false;
+        // MARK AS SEEN — with live stats update
+        let seenPatients = [], seenListVisible = false;
 
-        function markSeen(patientId) {
+        function markSeen(patientId, severity) {
             const card = document.getElementById('pcard-' + patientId);
             if (!card) return;
             const patientData = JSON.parse(card.getAttribute('data-patient'));
             seenPatients.push(patientData);
+
+            // Live stats update
+            const totalEl = document.getElementById('stat-total');
+            const sevEl = document.getElementById('stat-' + severity);
+            if (totalEl) totalEl.textContent = Math.max(0, parseInt(totalEl.textContent) - 1);
+            if (sevEl) sevEl.textContent = Math.max(0, parseInt(sevEl.textContent) - 1);
+
             card.style.transition = 'opacity 0.3s, transform 0.3s';
             card.style.opacity = '0';
             card.style.transform = 'translateX(20px)';
@@ -582,7 +611,7 @@
                 addToSeenList(patientData);
                 updateSeenSection();
             }, 300);
-            // Call API to mark seen
+
             fetch('/api/mark_seen', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ patient_id: patientId })
@@ -591,7 +620,7 @@
 
         function addToSeenList(p) {
             const seenList = document.getElementById('seen-list');
-            const severityLabel = p.severity === 'Orange' ? 'Critical if Untreated' : p.severity;
+            const label = p.severity === 'Orange' ? 'Critical if Untreated' : p.severity;
             const cls = (p.severity || '').toLowerCase();
             seenList.innerHTML += `
                 <div class="patient-card seen-card ${cls}" style="margin-bottom:10px;">
@@ -599,7 +628,7 @@
                     <div style="flex:1;">
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
                             <span class="patient-name">${p.name}</span>
-                            <span class="badge badge-${cls}">${severityLabel}</span>
+                            <span class="badge badge-${cls}">${label}</span>
                             <span style="font-size:0.72rem;color:var(--mild);background:rgba(34,197,94,0.08);padding:2px 8px;border-radius:10px;border:1px solid rgba(34,197,94,0.3);">✅ Seen</span>
                         </div>
                         <div class="patient-meta">Age ${p.age} · ${p.gender} · 📞 ${p.phone}</div>
@@ -633,16 +662,34 @@
             document.getElementById('m-bp').textContent = p.bp || 'N/A';
             document.getElementById('m-oxygen').textContent = p.oxygen ? p.oxygen + '%' : 'N/A';
             document.getElementById('m-sugar').textContent = p.sugar ? p.sugar + ' mg/dL' : 'N/A';
-            const label = p.severity === 'Orange' ? 'Critical if Untreated' : p.severity;
-            document.getElementById('m-severity').textContent = label;
+            document.getElementById('m-severity').textContent = p.severity === 'Orange' ? 'Critical if Untreated' : p.severity;
             document.getElementById('m-symptoms').textContent = p.symptoms;
 
-            // Show assigned doctor
+            // Current Medications
+            const cmWrap = document.getElementById('m-current-meds-wrap');
+            const cmVal = document.getElementById('m-current-meds');
+            if (p.current_medications) {
+                cmVal.textContent = p.current_medications;
+                cmWrap.style.display = 'block';
+            } else {
+                cmWrap.style.display = 'none';
+            }
+
+            // Known Conditions
+            const kcWrap = document.getElementById('m-known-conditions-wrap');
+            const kcVal = document.getElementById('m-known-conditions');
+            if (p.known_conditions) {
+                kcVal.textContent = p.known_conditions;
+                kcWrap.style.display = 'block';
+            } else {
+                kcWrap.style.display = 'none';
+            }
+
+            // Doctor banner
             const docBanner = document.getElementById('modal-doctor-banner');
-            const docName = document.getElementById('modal-doctor-name');
             if (p.doctor_name) {
                 docBanner.style.display = 'flex';
-                docName.textContent = p.doctor_name;
+                document.getElementById('modal-doctor-name').textContent = p.doctor_name;
             } else {
                 docBanner.style.display = 'none';
             }
@@ -650,9 +697,7 @@
             let html = '';
             if (p.disease_predictions) p.disease_predictions.forEach(d => {
                 html += `<div style="margin-bottom:10px;">
-                    <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:3px;">
-                        <span>${d.name}</span><span style="color:var(--accent);font-weight:700;">${d.likelihood}%</span>
-                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:3px;"><span>${d.name}</span><span style="color:var(--accent);font-weight:700;">${d.likelihood}%</span></div>
                     <div class="disease-bar"><div class="disease-fill" style="width:${d.likelihood}%"></div></div>
                 </div>`;
             });
@@ -680,8 +725,7 @@
             medicines.push({ name, dose, timing, food });
             document.getElementById('medicine-list').innerHTML +=
                 `<div class="medicine-item"><span>💊</span><span style="flex:1;font-weight:600;">${name}</span><span style="color:var(--text-muted);font-size:0.85rem;">${dose} · ${timing} · ${food}</span></div>`;
-            document.getElementById('med-name').value = '';
-            document.getElementById('med-dose').value = '';
+            document.getElementById('med-name').value = ''; document.getElementById('med-dose').value = '';
         }
 
         async function submitPrescription() {

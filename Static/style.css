@@ -1,3 +1,10 @@
+@font-face {
+    font-family: 'MedicinalCompound';
+    src: url('/static/MedicinalCompound.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 :root {
     --bg: #0a0f1e;
     --surface: #111827;
@@ -53,8 +60,8 @@ body {
 }
 
 .logo {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.4rem;
+    font-family: 'MedicinalCompound', sans-serif;
+    font-size: 1.6rem;
     font-weight: 800;
     color: var(--accent);
     letter-spacing: -0.5px;
