@@ -434,6 +434,37 @@
                     <div id="m-diseases"></div>
                 </div>
                 <div id="m-warning"></div>
+
+                <div
+                    style="margin-top:16px;background:var(--surface2);border:1.5px solid rgba(59,130,246,0.3);border-radius:12px;padding:16px;">
+                    <p
+                        style="font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:12px;">
+                        📊 Update Vitals</p>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                        <div style="flex:1;min-width:90px;">
+                            <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">BP
+                                (mmHg)</label>
+                            <input type="text" id="doc-bp" placeholder="e.g. 120/80"
+                                style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                        </div>
+                        <div style="flex:1;min-width:80px;">
+                            <label style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">O₂
+                                (%)</label>
+                            <input type="number" id="doc-oxygen" placeholder="e.g. 98"
+                                style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                        </div>
+                        <div style="flex:1;min-width:80px;">
+                            <label
+                                style="font-size:0.72rem;color:var(--text-muted);display:block;margin-bottom:4px;">Sugar
+                                (mg/dL)</label>
+                            <input type="number" id="doc-sugar" placeholder="e.g. 110"
+                                style="width:100%;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;">
+                        </div>
+                        <button class="btn btn-primary" onclick="submitDoctorVital()"
+                            style="padding:8px 14px;">Update</button>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Prescribe Tab -->
@@ -755,6 +786,27 @@
             document.getElementById('new-note').value = '';
             loadNotes(currentPatient.id);
         }
+
+        async function submitDoctorVital() {
+            const bp = document.getElementById('doc-bp').value.trim();
+            const oxygen = document.getElementById('doc-oxygen').value.trim();
+            const sugar = document.getElementById('doc-sugar').value.trim();
+            if (!bp && !oxygen && !sugar) { alert('Enter at least one vital!'); return; }
+            const res = await fetch('/api/add_vital', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ patient_id: currentPatient.id, bp: bp || null, oxygen: oxygen || null, sugar: sugar || null, recorded_by: 'Doctor' })
+            });
+            if ((await res.json()).success) {
+                alert('✅ Vitals updated!');
+                document.getElementById('doc-bp').value = '';
+                document.getElementById('doc-oxygen').value = '';
+                document.getElementById('doc-sugar').value = '';
+                if (bp) document.getElementById('m-bp').textContent = bp;
+                if (oxygen) document.getElementById('m-oxygen').textContent = oxygen + '%';
+                if (sugar) document.getElementById('m-sugar').textContent = sugar + ' mg/dL';
+            }
+        }
+
     </script>
 </body>
 

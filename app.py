@@ -49,7 +49,6 @@ def init_db():
                   recorded_by TEXT DEFAULT 'Patient',
                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
 
-    # Add new columns if they don't exist (for existing DBs)
     for col in ['current_medications', 'known_conditions']:
         try:
             c.execute(f'ALTER TABLE patients ADD COLUMN {col} TEXT DEFAULT ""')
@@ -70,7 +69,7 @@ def init_db():
                 'warning': 'Platelet count may drop rapidly. Requires immediate hospitalization.',
                 'doctor_key': 'dr_karan', 'doctor_name': 'Dr. Karan Malhotra', 'doctor_spec': 'MBBS, DNB — Emergency Medicine', 'doctor_room': 'Emergency Wing',
                 'current_medications': 'None', 'known_conditions': 'No known allergies',
-                'vitals_history': [('90/60', '96', '88')]
+                'vitals_history': [('90/60', '96', '88'), ('92/62', '96', '90')]
             },
             {
                 'name': 'Ramesh Gupta', 'phone': '9876543202', 'age': 58, 'gender': 'Male',
@@ -82,7 +81,7 @@ def init_db():
                 'doctor_key': 'dr_priya', 'doctor_name': 'Dr. Priya Mehra', 'doctor_spec': 'MD, DM — Cardiologist', 'doctor_room': 'Room 301',
                 'current_medications': 'Aspirin 75mg daily, Atorvastatin 20mg nightly',
                 'known_conditions': 'Hypertension, Coronary Artery Disease',
-                'vitals_history': [('160/100', '93', '130'), ('155/98', '94', '135'), ('150/95', '94', '140')]
+                'vitals_history': [('160/100', '93', '130'), ('155/98', '94', '135'), ('150/95', '94', '140'), ('148/92', '95', '138')]
             },
             {
                 'name': 'Sunita Patel', 'phone': '9876543203', 'age': 45, 'gender': 'Female',
@@ -94,7 +93,7 @@ def init_db():
                 'doctor_key': 'dr_rajan', 'doctor_name': 'Dr. Rajan Verma', 'doctor_spec': 'MBBS, MD — Pulmonologist', 'doctor_room': 'Room 108',
                 'current_medications': 'Salbutamol inhaler as needed',
                 'known_conditions': 'Asthma (mild), No drug allergies',
-                'vitals_history': [('120/78', '96', '100'), ('118/76', '97', '102')]
+                'vitals_history': [('120/78', '96', '100'), ('118/76', '97', '102'), ('116/74', '97', '100')]
             },
             {
                 'name': 'Arun Kumar', 'phone': '9876543204', 'age': 62, 'gender': 'Male',
@@ -106,7 +105,7 @@ def init_db():
                 'doctor_key': 'dr_sunita', 'doctor_name': 'Dr. Sunita Rao', 'doctor_spec': 'MBBS, MD — Diabetologist', 'doctor_room': 'Room 212',
                 'current_medications': 'Metformin 500mg twice daily, Insulin Glargine 10 units at bedtime',
                 'known_conditions': 'Type 2 Diabetes (10 years), Hypertension, Penicillin allergy',
-                'vitals_history': [('135/88', '97', '298'), ('128/82', '98', '310'), ('130/85', '98', '320')]
+                'vitals_history': [('135/88', '97', '298'), ('128/82', '98', '310'), ('130/85', '98', '320'), ('125/80', '98', '305')]
             },
             {
                 'name': 'Meera Joshi', 'phone': '9876543205', 'age': 28, 'gender': 'Female',
@@ -118,7 +117,7 @@ def init_db():
                 'doctor_key': 'dr_anil', 'doctor_name': 'Dr. Anil Sharma', 'doctor_spec': 'MBBS, MD — General Physician', 'doctor_room': 'Room 204',
                 'current_medications': 'None',
                 'known_conditions': 'No known conditions',
-                'vitals_history': [('110/70', '99', '95')]
+                'vitals_history': [('110/70', '99', '95'), ('112/72', '99', '96')]
             },
         ]
 
@@ -137,9 +136,17 @@ def init_db():
             c.execute('SELECT id FROM patients WHERE name=? AND phone=?',
                       (p['name'], p['phone']))
             pid = c.fetchone()[0]
-            for vh in p.get('vitals_history', []):
+
+            vitals = p.get('vitals_history', [])
+            for i, vh in enumerate(vitals):
+                if i == 0:
+                    recorded_by = 'Initial Record (Doctor)'
+                elif i == len(vitals) - 1:
+                    recorded_by = 'Patient'
+                else:
+                    recorded_by = 'Doctor'
                 c.execute('''INSERT INTO vitals_history (patient_id, bp, oxygen, sugar, recorded_by)
-                             VALUES (?, ?, ?, ?, ?)''', (pid, vh[0], vh[1], vh[2], 'Initial Record (Doctor)'))
+                             VALUES (?, ?, ?, ?, ?)''', (pid, vh[0], vh[1], vh[2], recorded_by))
 
         conn.commit()
 
@@ -229,7 +236,7 @@ def patient():
         c = conn.cursor()
         c.execute('''SELECT p.*, pr.medicines, pr.notes as presc_notes, pr.follow_up
                      FROM patients p LEFT JOIN prescriptions pr ON p.id = pr.patient_id
-                     WHERE p.name=? AND p.phone=? ORDER BY p.timestamp DESC LIMIT 1''', (name, phone))
+                     WHERE p.name=? AND p.phone=? ORDER BY pr.timestamp DESC LIMIT 1''', (name, phone))
         pat = c.fetchone()
         conn.close()
         if pat:
